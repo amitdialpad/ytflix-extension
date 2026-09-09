@@ -627,7 +627,7 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   gap: 9px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 5px 2px 32px;
+  padding: 14px 2px 32px;
   scroll-behavior: smooth;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
@@ -645,15 +645,13 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   outline: none;
   background: var(--ytflix-surface);
   scroll-snap-align: start;
-  transform-origin: center bottom;
+  transform-origin: center top;
   transition: z-index 180ms step-start, box-shadow 180ms ease, transform 180ms var(--ytflix-ease-out);
 }
 
 .ytflix-card:focus-within {
   z-index: 4;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.58);
-  outline: 3px solid white;
-  outline-offset: 2px;
   transform: translateY(-4px) scale(1.035);
 }
 
@@ -662,6 +660,12 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   color: white !important;
   outline: none;
   text-decoration: none !important;
+}
+
+.ytflix-card__link:focus-visible {
+  border-radius: 5px 5px 0 0;
+  outline: 3px solid white;
+  outline-offset: -3px;
 }
 
 .ytflix-card__art {
