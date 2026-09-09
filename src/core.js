@@ -95,6 +95,9 @@
 
     if (!/^https?:$/.test(new URL(href).protocol)) return null;
 
+    const rawProgress = Number(rawCard.progress);
+    const progress = Number.isFinite(rawProgress) ? Math.min(100, Math.max(0, rawProgress)) : 0;
+
     return {
       title,
       href,
@@ -102,10 +105,35 @@
       channel: String(rawCard.channel || "").replace(/\s+/g, " ").trim(),
       metadata: String(rawCard.metadata || "").replace(/\s+/g, " ").trim(),
       duration: String(rawCard.duration || "").replace(/\s+/g, " ").trim(),
+      progress,
       isCollection: Boolean(rawCard.isCollection),
       sponsored: Boolean(rawCard.sponsored),
       isShort: Boolean(rawCard.isShort)
     };
+  }
+
+  function matchScore(card) {
+    const source = `${card?.title || ""}|${card?.href || ""}`;
+    let hash = 0;
+    for (const character of source) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return 92 + (hash % 8);
+  }
+
+  function filterCardsByMood(cards, mood) {
+    const keywords = {
+      funny: ["comedy", "funny", "laugh", "stand-up", "standup", "sketch", "blooper"],
+      comfort: ["cozy", "relax", "calm", "ambient", "lofi", "cooking", "travel", "satisfying"],
+      music: ["music", "song", "concert", "live", "mix", "playlist", "acoustic", "session"],
+      deep: ["documentary", "history", "science", "interview", "explained", "essay", "story"]
+    };
+    const terms = keywords[mood] || [];
+    if (!terms.length) return [...(cards || [])];
+
+    const matches = (cards || []).filter((card) => {
+      const haystack = `${card.title} ${card.channel} ${card.metadata}`.toLowerCase();
+      return terms.some((term) => haystack.includes(term));
+    });
+    return matches.length ? matches : [...(cards || [])];
   }
 
   function eligibleForRail(card) {
@@ -152,7 +180,9 @@
     classifyRoute,
     dedupeCards,
     eligibleForRail,
+    filterCardsByMood,
     groupCards,
+    matchScore,
     normalizeCard,
     routeLabel,
     thumbnailFromUrl,

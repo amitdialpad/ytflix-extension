@@ -176,7 +176,11 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] ytd-page-manager {
 }
 
 #ytflix-root,
-#ytflix-watch-extras {
+#ytflix-watch-extras,
+#ytflix-details,
+#ytflix-mood-picker,
+#ytflix-profile-picker,
+#ytflix-still-watching {
   box-sizing: border-box;
   color: var(--ytflix-white);
   font-family: Arial, Helvetica, sans-serif;
@@ -188,7 +192,17 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] ytd-page-manager {
 #ytflix-root *::after,
 #ytflix-watch-extras *,
 #ytflix-watch-extras *::before,
-#ytflix-watch-extras *::after {
+#ytflix-watch-extras *::after,
+#ytflix-details *,
+#ytflix-details *::before,
+#ytflix-details *::after,
+#ytflix-mood-picker *,
+#ytflix-mood-picker *::before,
+#ytflix-mood-picker *::after,
+#ytflix-profile-picker *,
+#ytflix-profile-picker *::before,
+#ytflix-profile-picker *::after,
+#ytflix-still-watching * {
   box-sizing: border-box;
 }
 
@@ -257,11 +271,35 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 }
 
 .ytflix-nav__link {
+  border: 0;
+  background: transparent;
   color: #d8d8d8 !important;
+  cursor: pointer;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
   text-decoration: none !important;
   transition: color 150ms ease;
+}
+
+.ytflix-header-action {
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.72);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 13px;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.ytflix-header-action:hover,
+.ytflix-header-action.is-active {
+  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .ytflix-nav__link:hover,
@@ -300,11 +338,10 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   font: inherit;
   font-size: 13px;
   padding: 0 12px 0 38px;
-  transition: width 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition: border-color 180ms ease, background 180ms ease;
 }
 
 .ytflix-search__input:focus {
-  width: clamp(220px, 21vw, 340px);
   border-color: white;
   background: rgba(0, 0, 0, 0.88);
 }
@@ -464,16 +501,47 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   font-size: 16px;
   font-weight: 800;
   text-decoration: none !important;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background 150ms ease;
+}
+
+.ytflix-hero__actions,
+.ytflix-details__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .ytflix-button--primary {
   background: white;
 }
 
+.ytflix-button--secondary {
+  border: 0;
+  background: rgba(109, 109, 110, 0.74);
+  color: white !important;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .ytflix-button--primary:hover {
   background: #d8d8d8;
-  transform: translateY(-1px);
+}
+
+.ytflix-button--secondary:hover {
+  background: rgba(109, 109, 110, 0.94);
+}
+
+.ytflix-main--collection {
+  min-height: 100vh;
+  padding: calc(var(--ytflix-header-height) + 18px) 0 80px;
+}
+
+.ytflix-empty-state {
+  max-width: 520px;
+  margin: 28px 0;
+  color: var(--ytflix-muted);
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 .ytflix-rail-section,
@@ -564,23 +632,24 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   border-radius: 5px;
   outline: none;
   background: var(--ytflix-surface);
-  color: white !important;
-  text-decoration: none !important;
   scroll-snap-align: start;
   transform-origin: center bottom;
-  transition: z-index 180ms step-start, box-shadow 180ms ease, transform 180ms cubic-bezier(0.2, 0.72, 0.2, 1);
+  transition: z-index 180ms step-start, box-shadow 180ms ease, transform 180ms var(--ytflix-ease-out);
 }
 
-.ytflix-card:hover,
-.ytflix-card:focus-visible {
+.ytflix-card:focus-within {
   z-index: 4;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.58);
+  outline: 3px solid white;
+  outline-offset: 2px;
   transform: translateY(-4px) scale(1.035);
 }
 
-.ytflix-card:focus-visible {
-  outline: 3px solid white;
-  outline-offset: 2px;
+.ytflix-card__link {
+  display: block;
+  color: white !important;
+  outline: none;
+  text-decoration: none !important;
 }
 
 .ytflix-card__art {
@@ -594,18 +663,99 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: filter 180ms ease, transform 220ms ease;
-}
-
-.ytflix-card:hover .ytflix-card__art img {
-  filter: brightness(0.72);
-  transform: scale(1.045);
+  transition: opacity 180ms ease, transform 220ms var(--ytflix-ease-out);
 }
 
 .ytflix-card__overlay {
+  position: relative;
   min-height: 88px;
-  padding: 12px 13px 14px;
+  padding: 26px 13px 14px;
   background: linear-gradient(180deg, #1d1d1d, #141414);
+}
+
+.ytflix-card__actions {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  display: flex;
+  gap: 7px;
+  opacity: 0;
+  transform: translateY(-35%);
+  transition: opacity 180ms ease, transform 180ms var(--ytflix-ease-out);
+}
+
+.ytflix-card-action {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  background: #242424;
+  color: white !important;
+  cursor: pointer;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none !important;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.ytflix-card-action:hover,
+.ytflix-card-action:focus-visible {
+  border-color: white;
+  background: #3a3a3a;
+  outline: none;
+}
+
+.ytflix-card-action--play {
+  border-color: white;
+  background: white;
+  color: #111 !important;
+  font-size: 12px;
+}
+
+.ytflix-card-action.is-saved {
+  border-color: #46d369;
+  color: #46d369 !important;
+}
+
+.ytflix-card__match {
+  margin: 0 0 5px;
+  color: #46d369;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ytflix-card__preview {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  animation: ytflix-preview-in 200ms var(--ytflix-ease-out) forwards;
+}
+
+.ytflix-card__progress {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgba(128, 128, 128, 0.72);
+}
+
+.ytflix-card__progress-bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--ytflix-red);
+  transform-origin: left center;
 }
 
 .ytflix-card__title {
@@ -649,6 +799,328 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   top: 7px;
   bottom: auto;
   background: rgba(229, 9, 20, 0.9);
+}
+
+.ytflix-card:focus-within .ytflix-card__actions {
+  opacity: 1;
+  transform: translateY(-50%);
+}
+
+.ytflix-dialog {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.72);
+  color: white;
+  padding: 24px;
+  opacity: 0;
+  animation: ytflix-dialog-in 260ms var(--ytflix-ease-out) forwards;
+}
+
+.ytflix-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.64);
+}
+
+.ytflix-dialog.is-closing {
+  animation: ytflix-dialog-out 180ms var(--ytflix-ease-out) forwards;
+}
+
+.ytflix-dialog.is-closing .ytflix-details__panel,
+.ytflix-dialog.is-closing .ytflix-mood-picker__panel,
+.ytflix-dialog.is-closing .ytflix-profile-picker__panel {
+  animation: ytflix-dialog-panel-out 180ms var(--ytflix-ease-out) forwards;
+}
+
+.ytflix-details[open],
+.ytflix-mood-picker[open],
+.ytflix-profile-picker[open] {
+  display: grid;
+  place-items: center;
+}
+
+.ytflix-details__panel,
+.ytflix-mood-picker__panel,
+.ytflix-profile-picker__panel {
+  position: relative;
+  overflow: hidden;
+  width: min(850px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  border-radius: 12px;
+  background: #181818;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.72);
+  transform: translateY(3%) scale(0.96);
+  animation: ytflix-dialog-panel-in 300ms var(--ytflix-ease-out) forwards;
+}
+
+.ytflix-details__art {
+  position: relative;
+  min-height: 330px;
+  background: #242424;
+}
+
+.ytflix-details__art::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #181818 0%, transparent 64%);
+  content: "";
+}
+
+.ytflix-details__art img {
+  width: 100%;
+  height: 100%;
+  min-height: 330px;
+  object-fit: cover;
+}
+
+.ytflix-dialog__close {
+  position: absolute;
+  z-index: 3;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.88);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.ytflix-dialog__close:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+.ytflix-details__content {
+  position: relative;
+  z-index: 2;
+  margin-top: -95px;
+  padding: 0 38px 38px;
+}
+
+.ytflix-details__match {
+  margin: 0 0 8px;
+  color: #46d369;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ytflix-details__title,
+.ytflix-mood-picker__title {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 58px);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.ytflix-details__meta,
+.ytflix-details__description,
+.ytflix-mood-picker__copy {
+  max-width: 650px;
+  color: #d0d0d0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.ytflix-details__actions {
+  margin-top: 24px;
+}
+
+.ytflix-mood-picker__panel {
+  overflow-y: auto;
+  padding: 42px;
+}
+
+.ytflix-profile-picker__panel {
+  width: min(620px, calc(100vw - 48px));
+  overflow-y: auto;
+  padding: 42px;
+  text-align: center;
+}
+
+.ytflix-profile-picker__panel .ytflix-eyebrow {
+  color: var(--ytflix-muted);
+}
+
+.ytflix-profile-picker__title {
+  margin: 0;
+  font-size: clamp(36px, 5vw, 58px);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.ytflix-profile-picker__choices {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin: 34px 0 28px;
+}
+
+.ytflix-profile-choice {
+  width: 142px;
+  border: 0;
+  background: transparent;
+  color: var(--ytflix-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  padding: 0;
+  transition: color 150ms ease;
+}
+
+.ytflix-profile-choice__avatar {
+  display: grid;
+  width: 124px;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  margin: 0 auto 12px;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: #075f46;
+  color: white;
+  font-size: 52px;
+  font-weight: 800;
+  transition: border-color 150ms ease;
+}
+
+.ytflix-profile-choice__avatar.is-date-night {
+  background: linear-gradient(145deg, #e50914, #5c050b);
+}
+
+.ytflix-profile-choice__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ytflix-profile-choice:hover,
+.ytflix-profile-choice:focus-visible {
+  color: white;
+  outline: none;
+}
+
+.ytflix-profile-choice:hover .ytflix-profile-choice__avatar,
+.ytflix-profile-choice:focus-visible .ytflix-profile-choice__avatar {
+  border-color: white;
+}
+
+.ytflix-profile-choice__label {
+  display: block;
+}
+
+.ytflix-profile-picker__account {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: transparent;
+  color: var(--ytflix-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 10px 14px;
+  text-transform: uppercase;
+}
+
+.ytflix-profile-picker__account:hover,
+.ytflix-profile-picker__account:focus-visible {
+  border-color: white;
+  color: white;
+  outline: none;
+}
+
+.ytflix-mood-picker__copy {
+  margin: 14px 0 26px;
+}
+
+.ytflix-mood-picker__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ytflix-mood-choice {
+  min-height: 92px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #242424;
+  color: white;
+  cursor: pointer;
+  padding: 18px;
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.ytflix-mood-choice:hover,
+.ytflix-mood-choice:focus-visible {
+  border-color: rgba(255, 255, 255, 0.64);
+  background: #303030;
+  outline: none;
+}
+
+.ytflix-mood-choice__label,
+.ytflix-mood-choice__description {
+  display: block;
+}
+
+.ytflix-mood-choice__label {
+  font-size: 16px;
+}
+
+.ytflix-mood-choice__description {
+  margin-top: 5px;
+  color: var(--ytflix-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ytflix-still-watching {
+  position: fixed;
+  z-index: 2147483645;
+  right: 28px;
+  bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9px;
+  background: rgba(24, 24, 24, 0.96);
+  color: white;
+  padding: 16px 18px;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transform: translateY(18%);
+  animation: ytflix-toast-in 250ms var(--ytflix-ease-out) forwards;
+}
+
+.ytflix-still-watching__copy strong,
+.ytflix-still-watching__copy span {
+  display: block;
+}
+
+.ytflix-still-watching__copy span {
+  margin-top: 3px;
+  color: var(--ytflix-muted);
+  font-size: 12px;
+}
+
+.ytflix-still-watching__button {
+  border: 0;
+  border-radius: 4px;
+  background: white;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 9px 12px;
 }
 
 .ytflix-card__rank {
@@ -818,6 +1290,54 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   to { opacity: 1; }
 }
 
+@keyframes ytflix-preview-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ytflix-dialog-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ytflix-dialog-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes ytflix-dialog-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(3%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ytflix-dialog-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(3%) scale(0.96);
+  }
+}
+
+@keyframes ytflix-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(18%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Watch pages keep YouTube's real player and interactions. */
 html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-app {
   background: var(--ytflix-black) !important;
@@ -870,6 +1390,60 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-metadata h1
   padding: 0;
 }
 
+html[data-ytflix-lights-down] .ytflix-header__left .ytflix-nav,
+html[data-ytflix-lights-down] .ytflix-search,
+html[data-ytflix-lights-down] .ytflix-header-action:not(.ytflix-lights-toggle),
+html[data-ytflix-lights-down] .ytflix-account,
+html[data-ytflix-lights-down] ytd-watch-flexy #below,
+html[data-ytflix-lights-down] ytd-watch-flexy #comments,
+html[data-ytflix-lights-down] #ytflix-watch-extras {
+  display: none !important;
+}
+
+html[data-ytflix-lights-down] .ytflix-header {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.94), transparent);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+html[data-ytflix-lights-down] ytd-watch-flexy #columns {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 10px 18px 36px !important;
+}
+
+html[data-ytflix-lights-down] ytd-watch-flexy #primary {
+  width: min(100%, 1780px) !important;
+  margin: 0 auto !important;
+}
+
+html[data-ytflix-lights-down] #movie_player,
+html[data-ytflix-lights-down] #player-container-inner {
+  border-radius: 4px;
+  box-shadow: 0 0 110px rgba(229, 9, 20, 0.08);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ytflix-card:hover {
+    z-index: 4;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.58);
+    transform: translateY(-4px) scale(1.035);
+    transition-delay: 350ms;
+  }
+
+  .ytflix-card:hover .ytflix-card__art img {
+    opacity: 0.72;
+    transform: scale(1.045);
+    transition-delay: 350ms;
+  }
+
+  .ytflix-card:hover .ytflix-card__actions {
+    opacity: 1;
+    transform: translateY(-50%);
+    transition-delay: 350ms;
+  }
+}
+
 @media (max-width: 1000px) {
   .ytflix-nav {
     display: none;
@@ -889,6 +1463,46 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-metadata h1
 
   .ytflix-rail {
     grid-auto-columns: minmax(230px, 33vw);
+  }
+
+  .ytflix-mood-picker__choices {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --ytflix-gutter: 18px;
+  }
+
+  .ytflix-search {
+    display: none;
+  }
+
+  .ytflix-header__tools {
+    gap: 9px;
+  }
+
+  .ytflix-dialog {
+    padding: 12px;
+  }
+
+  .ytflix-profile-picker__panel {
+    width: calc(100vw - 24px);
+    padding: 38px 20px 30px;
+  }
+
+  .ytflix-profile-picker__choices {
+    gap: 16px;
+  }
+
+  .ytflix-profile-choice {
+    width: 112px;
+  }
+
+  .ytflix-profile-choice__avatar {
+    width: 96px;
+    font-size: 40px;
   }
 }
 
@@ -911,6 +1525,23 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-metadata h1
 
   #ytflix-startup.is-complete {
     animation-duration: 200ms;
+  }
+
+  .ytflix-dialog,
+  .ytflix-details__panel,
+  .ytflix-mood-picker__panel,
+  .ytflix-profile-picker__panel,
+  .ytflix-still-watching {
+    transform: none;
+    animation: ytflix-startup-reduced-in 200ms var(--ytflix-ease-out) both;
+  }
+
+  .ytflix-dialog.is-closing,
+  .ytflix-dialog.is-closing .ytflix-details__panel,
+  .ytflix-dialog.is-closing .ytflix-mood-picker__panel,
+  .ytflix-dialog.is-closing .ytflix-profile-picker__panel {
+    transform: none;
+    animation: ytflix-startup-reduced-in 200ms var(--ytflix-ease-out) reverse both;
   }
 
   #ytflix-root *,

@@ -6,7 +6,7 @@
 >
 > Want to contribute to this stupid project by fixing bugs or adding another feature? Feel free to raise a PR. Let's make it properly useless.
 
-## [⬇ Download the latest YTFLIX (v0.1.1)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
+## [⬇ Download the latest YTFLIX (v0.2.0)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
 
 No coding or Git required. This link always downloads the newest version from `main`, including the startup ident, jingle, and extension icon.
 
@@ -41,6 +41,11 @@ YTFLIX recuts the live YouTube desktop interface as a cinematic streaming librar
 - YouTube's single-page navigation is observed so YTFLIX rebuilds after route changes.
 - A startup cover holds the page until the YTFLIX shell is ready, avoiding a flash of the original homepage.
 - A YT-to-YTFLIX ribbon ident and bundled cinematic jingle play together once per Chrome session; the interface appears as soon as the visual finishes while the audio resolves.
+- Hover cards expand with playback controls, a playful match score, details, and optional muted YouTube previews.
+- Continue Watching uses YouTube’s rendered resume progress, while My List keeps private local picks for later.
+- Tonight’s Mood recuts the current recommendations into funny, cozy, musical, or deep-viewing collections—or chooses for you.
+- The account avatar opens a playful “Who’s watching?” moment, including a Date Night shortcut into the mood picker.
+- Lights Down turns watch pages into a distraction-free cinema view, with a rare “Still watching?” wink for heroic sessions.
 - Missing images use varied color artwork instead of repeating a logo placeholder.
 
 ## Updating your local copy
@@ -101,8 +106,8 @@ Bug fixes, selector repairs, accessibility improvements, and properly useless fe
 - Shorts, Studio, uploads, purchases, account management, and unsupported routes stay native.
 - Rail headings are playful presentation labels, not YouTube recommendation metadata.
 - Sponsored cards remain labeled when YouTube exposes them; player ads are not intercepted or skipped.
-- No remote code, analytics, data collection, or extension-originated network requests.
-- The only persistent saved setting is whether YTFLIX is on or off; the startup-ident gate resets when Chrome restarts.
+- No remote code, analytics, data collection, or third-party services; optional previews use standard muted YouTube embeds.
+- YTFLIX stores its enabled state, preview preference, and My List locally; the startup-ident gate resets when Chrome restarts.
 
 YouTube changes its DOM regularly. If extraction stops working, switch YTFLIX off from the popup and update the selector adapter in `src/content.js`.
 

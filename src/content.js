@@ -9,12 +9,20 @@
   const ACTIVE_ATTRIBUTE = "data-ytflix-enabled";
   const MODE_ATTRIBUTE = "data-ytflix-mode";
   const ROUTE_ATTRIBUTE = "data-ytflix-route";
+  const LIGHTS_DOWN_ATTRIBUTE = "data-ytflix-lights-down";
   const STARTUP_ID = "ytflix-startup";
+  const DETAILS_ID = "ytflix-details";
+  const MOOD_ID = "ytflix-mood-picker";
+  const PROFILE_ID = "ytflix-profile-picker";
+  const TOAST_ID = "ytflix-still-watching";
   const CLAIM_STARTUP_MESSAGE = "ytflix-claim-startup";
   const STARTUP_SOUND_MESSAGE = "ytflix-play-startup-sound";
   const STARTUP_MINIMUM_DURATION = 2100;
   const STARTUP_EXIT_DURATION = 320;
   const EMPTY_STATE_TIMEOUT = 6500;
+  const PREVIEW_DELAY = 700;
+  const DIALOG_EXIT_DURATION = 180;
+  const STILL_WATCHING_DELAY = 45 * 60 * 1000;
   const CARD_SELECTORS = [
     "yt-lockup-view-model",
     "ytd-rich-item-renderer",
@@ -42,7 +50,17 @@
     startupSoundRequested: false,
     startupStartedAt: 0,
     startupExitTimer: null,
-    startupRemoveTimer: null
+    startupRemoveTimer: null,
+    autoplayPreviews: true,
+    myList: [],
+    activeView: "",
+    activeMood: "",
+    lastCards: [],
+    previewTimer: null,
+    previewOwner: null,
+    lightsDown: false,
+    stillWatchingTimer: null,
+    stillWatchingHref: ""
   };
 
   document.documentElement.dataset.ytflixPending = "true";
@@ -155,6 +173,29 @@
     return candidates[candidates.length - 1] || "";
   }
 
+  function playbackProgress(cardNode) {
+    const progressNode = cardNode.querySelector(
+      [
+        "ytd-thumbnail-overlay-resume-playback-renderer #progress",
+        "#progress.ytd-thumbnail-overlay-resume-playback-renderer",
+        "yt-thumbnail-overlay-progress-bar-view-model #progress",
+        ".ytThumbnailOverlayProgressBarHostWatchedProgressBarSegment"
+      ].join(",")
+    );
+    if (!progressNode) return 0;
+
+    const inlineWidth = progressNode.style.width || "";
+    const styleAttribute = progressNode.getAttribute("style") || "";
+    const percentage = inlineWidth.endsWith("%")
+      ? Number.parseFloat(inlineWidth)
+      : Number(styleAttribute.match(/width:\s*([\d.]+)%/i)?.[1]);
+    if (Number.isFinite(percentage) && percentage > 0) return percentage;
+
+    const parentWidth = progressNode.parentElement?.getBoundingClientRect().width || 0;
+    const width = progressNode.getBoundingClientRect().width;
+    return parentWidth > 0 ? (width / parentWidth) * 100 : 0;
+  }
+
   function findDestination(cardNode) {
     const preferredSelectors = [
       "a.ytLockupMetadataViewModelTitle[href]",
@@ -242,6 +283,7 @@
       duration,
       href,
       metadata: metadataParts.join(" · "),
+      progress: playbackProgress(cardNode),
       sponsored: Boolean(cardNode.closest("ytd-ad-slot-renderer")) || /\bSponsored\b/i.test(allText),
       isCollection,
       isShort: Boolean(nearestShortShelf) || /\/shorts\//.test(href),
@@ -345,6 +387,157 @@
     updateAccountButton(document.querySelector(`#${ROOT_ID} .ytflix-account`));
   }
 
+  function showSavedView() {
+    state.activeView = "my-list";
+    state.activeMood = "";
+    state.signature = "";
+    scheduleRender(0);
+  }
+
+  function chooseMood(mood) {
+    closeDialog(MOOD_ID);
+    if (mood === "surprise") {
+      const choices = state.lastCards.filter((card) => core.videoIdFromUrl(card.href));
+      const pick = choices[Math.floor(Math.random() * choices.length)];
+      if (pick) location.assign(pick.href);
+      return;
+    }
+
+    state.activeView = "mood";
+    state.activeMood = mood;
+    state.signature = "";
+    scheduleRender(0);
+  }
+
+  function openMoodPicker() {
+    closeDialog(MOOD_ID);
+    const dialog = makeElement("dialog", "ytflix-dialog ytflix-mood-picker");
+    dialog.id = MOOD_ID;
+    dialog.setAttribute("aria-labelledby", "ytflix-mood-title");
+    const panel = makeElement("section", "ytflix-mood-picker__panel");
+    const close = makeElement("button", "ytflix-dialog__close", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close mood picker");
+    close.addEventListener("click", () => dismissDialog(dialog));
+    panel.appendChild(close);
+    panel.appendChild(makeElement("p", "ytflix-eyebrow", "Tonight on YTFLIX"));
+    const title = makeElement("h2", "ytflix-mood-picker__title", "What are we watching?");
+    title.id = "ytflix-mood-title";
+    panel.appendChild(title);
+    panel.appendChild(
+      makeElement("p", "ytflix-mood-picker__copy", "Pick a mood. We’ll recut what YouTube already has waiting for you.")
+    );
+
+    const choices = makeElement("div", "ytflix-mood-picker__choices");
+    [
+      ["funny", "Something funny", "Comedy, sketches and excellent nonsense"],
+      ["comfort", "Background comfort", "Calm, cozy and easy to keep on"],
+      ["music", "Date-night music", "Live sessions, playlists and acoustic sets"],
+      ["deep", "Something absorbing", "Documentaries, essays and interviews"],
+      ["surprise", "Surprise me", "Skip the debate and press play"]
+    ].forEach(([value, label, description]) => {
+      const button = makeElement("button", "ytflix-mood-choice");
+      button.type = "button";
+      button.append(
+        makeElement("strong", "ytflix-mood-choice__label", label),
+        makeElement("span", "ytflix-mood-choice__description", description)
+      );
+      button.addEventListener("click", () => chooseMood(value));
+      choices.appendChild(button);
+    });
+    panel.appendChild(choices);
+    dialog.appendChild(panel);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dismissDialog(dialog);
+    });
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      dismissDialog(dialog);
+    });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    close.focus();
+  }
+
+  function openProfilePicker() {
+    closeDialog(PROFILE_ID);
+    const dialog = makeElement("dialog", "ytflix-dialog ytflix-profile-picker");
+    dialog.id = PROFILE_ID;
+    dialog.setAttribute("aria-labelledby", "ytflix-profile-title");
+    const panel = makeElement("section", "ytflix-profile-picker__panel");
+    const close = makeElement("button", "ytflix-dialog__close", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close profile picker");
+    close.addEventListener("click", () => dismissDialog(dialog));
+    panel.appendChild(close);
+    panel.appendChild(makeElement("p", "ytflix-eyebrow", "Profiles"));
+    const title = makeElement("h2", "ytflix-profile-picker__title", "Who’s watching?");
+    title.id = "ytflix-profile-title";
+    panel.appendChild(title);
+
+    const choices = makeElement("div", "ytflix-profile-picker__choices");
+    const personal = makeElement("button", "ytflix-profile-choice");
+    personal.type = "button";
+    const personalAvatar = makeElement("span", "ytflix-profile-choice__avatar");
+    const avatarSource = getNativeAvatarSource();
+    if (avatarSource) {
+      const avatar = document.createElement("img");
+      avatar.src = avatarSource;
+      avatar.alt = "";
+      personalAvatar.appendChild(avatar);
+    } else {
+      personalAvatar.textContent = "A";
+    }
+    personal.append(personalAvatar, makeElement("span", "ytflix-profile-choice__label", "My YTFLIX"));
+    personal.addEventListener("click", () => dismissDialog(dialog));
+
+    const dateNight = makeElement("button", "ytflix-profile-choice");
+    dateNight.type = "button";
+    dateNight.append(
+      makeElement("span", "ytflix-profile-choice__avatar is-date-night", "♥"),
+      makeElement("span", "ytflix-profile-choice__label", "Date Night")
+    );
+    dateNight.addEventListener("click", () => {
+      dismissDialog(dialog);
+      window.setTimeout(openMoodPicker, DIALOG_EXIT_DURATION);
+    });
+    choices.append(personal, dateNight);
+    panel.appendChild(choices);
+
+    const youtubeAccount = makeElement("button", "ytflix-profile-picker__account", "Open YouTube account");
+    youtubeAccount.type = "button";
+    youtubeAccount.addEventListener("click", () => {
+      closeDialog(PROFILE_ID);
+      getNativeAccountButton()?.click();
+    });
+    panel.appendChild(youtubeAccount);
+
+    dialog.appendChild(panel);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dismissDialog(dialog);
+    });
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      dismissDialog(dialog);
+    });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    personal.focus();
+  }
+
+  function setLightsDown(enabled) {
+    state.lightsDown = Boolean(enabled);
+    document.documentElement.toggleAttribute(LIGHTS_DOWN_ATTRIBUTE, state.lightsDown);
+    const button = document.querySelector(".ytflix-lights-toggle");
+    if (button) {
+      button.classList.toggle("is-active", state.lightsDown);
+      button.textContent = state.lightsDown ? "Lights up" : "Lights down";
+      button.setAttribute("aria-pressed", String(state.lightsDown));
+    }
+  }
+
   function createHeader(route) {
     const header = makeElement("header", "ytflix-header");
     const left = makeElement("div", "ytflix-header__left");
@@ -366,13 +559,19 @@
       const anchor = makeElement("a", "ytflix-nav__link", label);
       anchor.href = `https://www.youtube.com${path}`;
       if (
-        (path === "/" && route === "home") ||
+        (path === "/" && route === "home" && !state.activeView) ||
         (path !== "/" && location.pathname.startsWith(path))
       ) {
         anchor.classList.add("is-active");
       }
       nav.appendChild(anchor);
     }
+
+    const myList = makeElement("button", "ytflix-nav__link ytflix-nav__button", "My List");
+    myList.type = "button";
+    myList.classList.toggle("is-active", state.activeView === "my-list");
+    myList.addEventListener("click", showSavedView);
+    nav.appendChild(myList);
     left.appendChild(nav);
 
     const tools = makeElement("div", "ytflix-header__tools");
@@ -391,10 +590,27 @@
     });
     tools.appendChild(search);
 
+    const moodButton = makeElement("button", "ytflix-header-action", "Tonight’s mood");
+    moodButton.type = "button";
+    moodButton.addEventListener("click", openMoodPicker);
+    tools.appendChild(moodButton);
+
+    if (route === "watch" && !state.activeView) {
+      const lightsButton = makeElement(
+        "button",
+        "ytflix-header-action ytflix-lights-toggle",
+        state.lightsDown ? "Lights up" : "Lights down"
+      );
+      lightsButton.type = "button";
+      lightsButton.setAttribute("aria-pressed", String(state.lightsDown));
+      lightsButton.addEventListener("click", () => setLightsDown(!state.lightsDown));
+      tools.appendChild(lightsButton);
+    }
+
     const accountButton = makeElement("button", "ytflix-account");
     accountButton.type = "button";
     accountButton.setAttribute("aria-label", "Open YouTube account menu");
-    accountButton.addEventListener("click", () => getNativeAccountButton()?.click());
+    accountButton.addEventListener("click", openProfilePicker);
     updateAccountButton(accountButton);
     tools.appendChild(accountButton);
 
@@ -419,8 +635,9 @@
       const image = document.createElement("img");
       image.src = source;
       image.alt = "";
-      image.loading = className.includes("hero") ? "eager" : "lazy";
-      if (className.includes("hero")) image.fetchPriority = "high";
+      const prioritize = className.includes("hero") || className.includes("details");
+      image.loading = prioritize ? "eager" : "lazy";
+      if (prioritize) image.fetchPriority = "high";
       image.addEventListener("error", () => {
         if (fallbackThumbnail && image.src !== fallbackThumbnail) {
           image.src = fallbackThumbnail;
@@ -436,8 +653,160 @@
     return frame;
   }
 
+  function cardKey(card) {
+    return core.videoIdFromUrl(card.href) || card.href;
+  }
+
+  function isInMyList(card) {
+    const key = cardKey(card);
+    return state.myList.some((savedCard) => cardKey(savedCard) === key);
+  }
+
+  function syncMyListButtons() {
+    for (const button of document.querySelectorAll("[data-ytflix-list-key]")) {
+      const saved = state.myList.some((card) => cardKey(card) === button.dataset.ytflixListKey);
+      button.classList.toggle("is-saved", saved);
+      const compact = button.dataset.ytflixListStyle === "compact";
+      button.textContent = compact ? (saved ? "✓" : "+") : (saved ? "✓ My List" : "+ My List");
+      button.setAttribute("aria-label", saved ? "Remove from My List" : "Add to My List");
+      button.title = saved ? "Remove from My List" : "Add to My List";
+    }
+  }
+
+  async function toggleMyList(card) {
+    const key = cardKey(card);
+    const exists = state.myList.some((savedCard) => cardKey(savedCard) === key);
+    state.myList = exists
+      ? state.myList.filter((savedCard) => cardKey(savedCard) !== key)
+      : [core.normalizeCard(card), ...state.myList].filter(Boolean);
+    await chrome.storage.local.set({ myList: state.myList });
+    syncMyListButtons();
+    if (state.activeView === "my-list") {
+      state.signature = "";
+      scheduleRender(0);
+    }
+  }
+
+  function createMyListButton(card, className = "ytflix-card-action") {
+    const compact = className.includes("ytflix-card-action");
+    const saved = isInMyList(card);
+    const button = makeElement(
+      "button",
+      className,
+      compact ? (saved ? "✓" : "+") : (saved ? "✓ My List" : "+ My List")
+    );
+    button.type = "button";
+    button.dataset.ytflixListKey = cardKey(card);
+    button.dataset.ytflixListStyle = compact ? "compact" : "full";
+    button.setAttribute("aria-label", saved ? "Remove from My List" : "Add to My List");
+    button.title = button.getAttribute("aria-label");
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void toggleMyList(card);
+    });
+    return button;
+  }
+
+  function stopPreview(owner = state.previewOwner) {
+    window.clearTimeout(state.previewTimer);
+    state.previewTimer = null;
+    if (!owner) return;
+    owner.classList.remove("is-previewing");
+    owner.querySelector(".ytflix-card__preview")?.remove();
+    if (state.previewOwner === owner) state.previewOwner = null;
+  }
+
+  function startPreview(owner, card) {
+    const videoId = core.videoIdFromUrl(card.href);
+    if (!state.autoplayPreviews || !videoId || !owner.isConnected) return;
+    stopPreview();
+
+    const preview = document.createElement("iframe");
+    preview.className = "ytflix-card__preview";
+    preview.title = `Muted preview of ${card.title}`;
+    preview.allow = "autoplay; encrypted-media";
+    preview.tabIndex = -1;
+    preview.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`;
+    owner.querySelector(".ytflix-card__art")?.appendChild(preview);
+    owner.classList.add("is-previewing");
+    state.previewOwner = owner;
+  }
+
+  function armPreview(owner, card) {
+    owner.addEventListener("pointerenter", () => {
+      if (!state.autoplayPreviews) return;
+      window.clearTimeout(state.previewTimer);
+      state.previewTimer = window.setTimeout(() => startPreview(owner, card), PREVIEW_DELAY);
+    });
+    owner.addEventListener("pointerleave", () => stopPreview(owner));
+  }
+
+  function closeDialog(id) {
+    const dialog = document.getElementById(id);
+    if (!dialog) return false;
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.remove();
+    return true;
+  }
+
+  function dismissDialog(dialog) {
+    if (!dialog || dialog.classList.contains("is-closing")) return;
+    dialog.classList.add("is-closing");
+    window.setTimeout(() => {
+      if (dialog.open) dialog.close();
+      else dialog.remove();
+    }, DIALOG_EXIT_DURATION);
+  }
+
+  function openDetails(card) {
+    closeDialog(DETAILS_ID);
+    stopPreview();
+
+    const dialog = makeElement("dialog", "ytflix-dialog ytflix-details");
+    dialog.id = DETAILS_ID;
+    dialog.setAttribute("aria-label", card.title);
+    const panel = makeElement("article", "ytflix-details__panel");
+    const artwork = imageNode(card, "ytflix-details__art");
+    const close = makeElement("button", "ytflix-dialog__close", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close details");
+    close.addEventListener("click", () => dismissDialog(dialog));
+    artwork.appendChild(close);
+
+    const content = makeElement("div", "ytflix-details__content");
+    content.appendChild(makeElement("p", "ytflix-details__match", `${core.matchScore(card)}% your vibe`));
+    content.appendChild(makeElement("h2", "ytflix-details__title", card.title));
+    const meta = [card.channel, card.duration, card.metadata].filter(Boolean).join(" · ");
+    if (meta) content.appendChild(makeElement("p", "ytflix-details__meta", meta));
+    content.appendChild(
+      makeElement("p", "ytflix-details__description", "Settle in—this one is ready in your native YouTube player.")
+    );
+
+    const actions = makeElement("div", "ytflix-details__actions");
+    const play = makeElement("a", "ytflix-button ytflix-button--primary", "▶ Play");
+    play.href = card.href;
+    const listButton = createMyListButton(card, "ytflix-button ytflix-button--secondary");
+    actions.append(play, listButton);
+    content.appendChild(actions);
+    panel.append(artwork, content);
+    dialog.appendChild(panel);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dismissDialog(dialog);
+    });
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      dismissDialog(dialog);
+    });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    close.focus();
+  }
+
   function createCard(card, rank) {
-    const anchor = makeElement("a", "ytflix-card");
+    const wrapper = makeElement("article", "ytflix-card");
+    const anchor = makeElement("a", "ytflix-card__link");
     anchor.href = card.href;
     anchor.setAttribute("aria-label", `Play ${card.title}`);
 
@@ -445,13 +814,40 @@
     if (rank) art.appendChild(makeElement("span", "ytflix-card__rank", String(rank)));
     if (card.duration) art.appendChild(makeElement("span", "ytflix-card__duration", card.duration));
     if (card.sponsored) art.appendChild(makeElement("span", "ytflix-card__sponsored", "Sponsored"));
+    if (card.progress > 0 && card.progress < 98) {
+      const progressTrack = makeElement("span", "ytflix-card__progress");
+      const progressBar = makeElement("span", "ytflix-card__progress-bar");
+      progressBar.style.transform = `scaleX(${card.progress / 100})`;
+      progressTrack.appendChild(progressBar);
+      art.appendChild(progressTrack);
+    }
 
     const overlay = makeElement("div", "ytflix-card__overlay");
+    const actions = makeElement("div", "ytflix-card__actions");
+    const play = makeElement("a", "ytflix-card-action ytflix-card-action--play", "▶");
+    play.href = card.href;
+    play.setAttribute("aria-label", `Play ${card.title}`);
+    play.title = "Play";
+    const listButton = createMyListButton(card);
+    const info = makeElement("button", "ytflix-card-action", "i");
+    info.type = "button";
+    info.setAttribute("aria-label", `More information about ${card.title}`);
+    info.title = "More info";
+    info.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openDetails(card);
+    });
+    actions.append(play, listButton, info);
+    overlay.appendChild(actions);
+    overlay.appendChild(makeElement("p", "ytflix-card__match", `${core.matchScore(card)}% your vibe`));
     overlay.appendChild(makeElement("h3", "ytflix-card__title", card.title));
     if (card.channel) overlay.appendChild(makeElement("p", "ytflix-card__channel", card.channel));
     if (card.metadata) overlay.appendChild(makeElement("p", "ytflix-card__metadata", card.metadata));
-    anchor.append(art, overlay);
-    return anchor;
+    anchor.appendChild(art);
+    wrapper.append(anchor, overlay);
+    armPreview(wrapper, card);
+    return wrapper;
   }
 
   function createHero(card, pageTitle) {
@@ -468,9 +864,15 @@
       makeElement("p", "ytflix-hero__description", "Your YouTube feed, recut as tonight’s streaming lineup.")
     );
 
+    const actions = makeElement("div", "ytflix-hero__actions");
     const play = makeElement("a", "ytflix-button ytflix-button--primary", "▶ Play");
     play.href = card.href;
-    content.appendChild(play);
+    const listButton = createMyListButton(card, "ytflix-button ytflix-button--secondary");
+    const info = makeElement("button", "ytflix-button ytflix-button--secondary", "ⓘ More info");
+    info.type = "button";
+    info.addEventListener("click", () => openDetails(card));
+    actions.append(play, listButton, info);
+    content.appendChild(actions);
     hero.append(art, content);
     return hero;
   }
@@ -511,10 +913,16 @@
     return section;
   }
 
-  function createGrid(title, cards) {
+  function createGrid(title, cards, eyebrow = "Browse YouTube") {
     const section = makeElement("section", "ytflix-grid-section");
-    section.appendChild(makeElement("p", "ytflix-eyebrow", "Browse YouTube"));
+    section.appendChild(makeElement("p", "ytflix-eyebrow", eyebrow));
     section.appendChild(makeElement("h1", "ytflix-page-title", title));
+    if (!cards.length) {
+      section.appendChild(
+        makeElement("p", "ytflix-empty-state", "Nothing here yet. Add a title from any card and it’ll be waiting for tonight.")
+      );
+      return section;
+    }
     const grid = makeElement("div", "ytflix-grid");
     cards.forEach((card) => grid.appendChild(createCard(card, 0)));
     section.appendChild(grid);
@@ -531,6 +939,40 @@
     if (recentVideos.length) wrapper.appendChild(createRail("Watch History", recentVideos, false));
     if (collections.length) wrapper.appendChild(createRail("Your Playlists & Collections", collections, false));
     return wrapper;
+  }
+
+  function renderPersonalView() {
+    document.getElementById(WATCH_EXTRAS_ID)?.remove();
+    const signature = [
+      "personal",
+      state.activeView,
+      state.activeMood,
+      ...state.myList.map(cardKey),
+      ...state.lastCards.map(cardKey)
+    ].join("::");
+    if (signature === state.signature && document.getElementById(ROOT_ID)) return;
+    state.signature = signature;
+
+    const root = makeElement("div", "ytflix-app");
+    root.id = ROOT_ID;
+    root.appendChild(createHeader("home"));
+    const main = makeElement("main", "ytflix-main ytflix-main--collection");
+
+    if (state.activeView === "my-list") {
+      main.appendChild(createGrid("My List", state.myList, "Saved for tonight"));
+    } else {
+      const labels = {
+        funny: "Something funny",
+        comfort: "Background comfort",
+        music: "Date-night music",
+        deep: "Something absorbing"
+      };
+      const cards = core.filterCardsByMood(state.lastCards, state.activeMood);
+      main.appendChild(createGrid(labels[state.activeMood] || "Tonight’s picks", cards, "Matched to your mood"));
+    }
+
+    root.appendChild(main);
+    installRoot(root);
   }
 
   function createSkeleton(route) {
@@ -561,6 +1003,10 @@
   }
 
   function renderBrowse(route, cards) {
+    window.clearTimeout(state.stillWatchingTimer);
+    state.stillWatchingTimer = null;
+    state.stillWatchingHref = "";
+    document.getElementById(TOAST_ID)?.remove();
     const root = makeElement("div", "ytflix-app");
     root.id = ROOT_ID;
     root.appendChild(createHeader(route));
@@ -574,6 +1020,13 @@
     } else if (route === "search" || route === "channel" || route === "playlist") {
       if (route === "channel" && cards[0]) main.appendChild(createHero(cards[0], pageTitle));
       main.appendChild(createGrid(pageTitle, cards));
+    } else if (route === "home") {
+      main.appendChild(createHero(cards[0], pageTitle));
+      const continueWatching = cards.filter((card) => card.progress > 0 && card.progress < 98);
+      if (continueWatching.length) main.appendChild(createRail("Continue Watching", continueWatching, false));
+      main.appendChild(createRail("Top 10 Tonight", cards.slice(0, 10), true));
+      if (cards.length > 10) main.appendChild(createRail("Because You Watched Everything", cards.slice(10, 22), false));
+      if (cards.length > 22) main.appendChild(createRail("Fresh on YouTube", cards.slice(22, 34), false));
     } else {
       main.appendChild(createHero(cards[0], pageTitle));
       const groups = core.groupCards(cards, 8);
@@ -587,11 +1040,36 @@
     installRoot(root);
   }
 
+  function showStillWatching() {
+    if (document.getElementById(TOAST_ID) || core.classifyRoute(location.href) !== "watch") return;
+    const toast = makeElement("aside", "ytflix-still-watching");
+    toast.id = TOAST_ID;
+    toast.setAttribute("role", "status");
+    const copy = makeElement("div", "ytflix-still-watching__copy");
+    copy.append(
+      makeElement("strong", "", "Still watching?"),
+      makeElement("span", "", "Excellent commitment. Carry on.")
+    );
+    const dismiss = makeElement("button", "ytflix-still-watching__button", "Obviously");
+    dismiss.type = "button";
+    dismiss.addEventListener("click", () => toast.remove());
+    toast.append(copy, dismiss);
+    document.body.appendChild(toast);
+  }
+
+  function scheduleStillWatching() {
+    if (state.stillWatchingHref === location.href && state.stillWatchingTimer) return;
+    window.clearTimeout(state.stillWatchingTimer);
+    state.stillWatchingHref = location.href;
+    state.stillWatchingTimer = window.setTimeout(showStillWatching, STILL_WATCHING_DELAY);
+  }
+
   function renderWatch(route, cards) {
     const root = makeElement("div", "ytflix-app ytflix-app--watch");
     root.id = ROOT_ID;
     root.appendChild(createHeader(route));
     installRoot(root);
+    scheduleStillWatching();
 
     document.getElementById(WATCH_EXTRAS_ID)?.remove();
     const recommendations = cards.filter((card) => card.href !== location.href).slice(0, 16);
@@ -609,6 +1087,7 @@
 
   function applyPageMode(route) {
     const isWatch = route === "watch";
+    if (!isWatch && state.lightsDown) setLightsDown(false);
     document.documentElement.setAttribute(ACTIVE_ATTRIBUTE, "true");
     document.documentElement.setAttribute(MODE_ATTRIBUTE, isWatch ? "watch" : "browse");
     document.documentElement.setAttribute(ROUTE_ATTRIBUTE, route);
@@ -616,6 +1095,12 @@
 
   function showNativeRoute(route) {
     finishStartupSequence(true);
+    setLightsDown(false);
+    stopPreview();
+    closeDialog(DETAILS_ID);
+    closeDialog(MOOD_ID);
+    closeDialog(PROFILE_ID);
+    document.getElementById(TOAST_ID)?.remove();
     document.getElementById(ROOT_ID)?.remove();
     document.getElementById(WATCH_EXTRAS_ID)?.remove();
     document.documentElement.removeAttribute(ACTIVE_ATTRIBUTE);
@@ -627,6 +1112,12 @@
 
   function render() {
     if (!state.enabled || !document.body || state.isNavigating) return;
+    if (state.activeView) {
+      applyPageMode("home");
+      renderPersonalView();
+      return;
+    }
+
     const route = core.classifyRoute(location.href);
     if (route === "unsupported" || route === "shorts") {
       showNativeRoute(route);
@@ -634,6 +1125,7 @@
     }
 
     const cards = collectCards();
+    if (cards.length) state.lastCards = cards;
     if (state.fallbackHref === location.href && !cards.length) {
       showNativeRoute(route);
       return;
@@ -684,7 +1176,7 @@
 
   function mutationBelongsToYTFlix(mutation) {
     const target = mutation.target.nodeType === Node.ELEMENT_NODE ? mutation.target : mutation.target.parentElement;
-    return Boolean(target?.closest?.(`#${ROOT_ID}, #${WATCH_EXTRAS_ID}`));
+    return Boolean(target?.closest?.(`#${ROOT_ID}, #${WATCH_EXTRAS_ID}, #${DETAILS_ID}, #${MOOD_ID}, #${PROFILE_ID}, #${TOAST_ID}`));
   }
 
   function startObservers() {
@@ -714,9 +1206,13 @@
     window.clearInterval(state.locationTimer);
     window.clearTimeout(state.renderTimer);
     window.clearTimeout(state.navigationTimer);
+    window.clearTimeout(state.previewTimer);
+    window.clearTimeout(state.stillWatchingTimer);
     state.locationTimer = null;
     state.renderTimer = null;
     state.navigationTimer = null;
+    state.previewTimer = null;
+    state.stillWatchingTimer = null;
   }
 
   function handleYouTubeNavigation() {
@@ -732,6 +1228,17 @@
 
   function handleYouTubeNavigationStart() {
     state.isNavigating = true;
+    state.activeView = "";
+    state.activeMood = "";
+    setLightsDown(false);
+    stopPreview();
+    closeDialog(DETAILS_ID);
+    closeDialog(MOOD_ID);
+    closeDialog(PROFILE_ID);
+    window.clearTimeout(state.stillWatchingTimer);
+    state.stillWatchingTimer = null;
+    state.stillWatchingHref = "";
+    document.getElementById(TOAST_ID)?.remove();
     window.clearTimeout(state.navigationTimer);
     state.navigationTimer = window.setTimeout(() => {
       state.isNavigating = false;
@@ -763,8 +1270,14 @@
 
     let enabled = true;
     try {
-      const settings = await chrome.storage.local.get({ enabled: true });
+      const settings = await chrome.storage.local.get({
+        autoplayPreviews: true,
+        enabled: true,
+        myList: []
+      });
       enabled = settings.enabled !== false;
+      state.autoplayPreviews = settings.autoplayPreviews !== false;
+      state.myList = core.dedupeCards(settings.myList || []);
     } catch (_error) {
       enabled = true;
     }
@@ -773,7 +1286,20 @@
     setEnabled(enabled);
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== "local" || !changes.enabled) return;
+      if (areaName !== "local") return;
+      if (changes.autoplayPreviews) {
+        state.autoplayPreviews = changes.autoplayPreviews.newValue !== false;
+        if (!state.autoplayPreviews) stopPreview();
+      }
+      if (changes.myList) {
+        state.myList = core.dedupeCards(changes.myList.newValue || []);
+        syncMyListButtons();
+        if (state.activeView === "my-list") {
+          state.signature = "";
+          scheduleRender(0);
+        }
+      }
+      if (!changes.enabled) return;
       const nextEnabled = changes.enabled.newValue !== false;
       if (!nextEnabled) {
         setEnabled(false);
@@ -781,6 +1307,16 @@
       }
 
       void claimStartupSequence().finally(() => setEnabled(true));
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (
+        document.getElementById(DETAILS_ID) ||
+        document.getElementById(MOOD_ID) ||
+        document.getElementById(PROFILE_ID)
+      ) return;
+      if (state.lightsDown) setLightsDown(false);
     });
   }
 

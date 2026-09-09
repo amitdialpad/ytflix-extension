@@ -40,6 +40,12 @@ test("normalizes, deduplicates, and preserves sponsored cards", () => {
   assert.equal(cards[0].href, "https://www.youtube.com/watch?v=1");
 });
 
+test("normalizes playback progress into a safe percentage", () => {
+  assert.equal(core.normalizeCard({ title: "One", href: "/watch?v=1", progress: 42 }).progress, 42);
+  assert.equal(core.normalizeCard({ title: "Two", href: "/watch?v=2", progress: 140 }).progress, 100);
+  assert.equal(core.normalizeCard({ title: "Three", href: "/watch?v=3", progress: -20 }).progress, 0);
+});
+
 test("deduplicates time-stamped variants of the same video", () => {
   const cards = core.dedupeCards([
     { title: "First visit", href: "/watch?v=dQw4w9WgXcQ&t=10s" },
@@ -103,4 +109,19 @@ test("builds a reliable YouTube thumbnail fallback", () => {
     "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
   );
   assert.equal(core.thumbnailFromUrl("/playlist?list=PL123"), "");
+});
+
+test("builds stable playful match scores", () => {
+  const card = { title: "A Good Video", href: "https://www.youtube.com/watch?v=1" };
+  assert.equal(core.matchScore(card), core.matchScore(card));
+  assert.ok(core.matchScore(card) >= 92 && core.matchScore(card) <= 99);
+});
+
+test("filters cards by mood and falls back when no titles match", () => {
+  const cards = [
+    { title: "Live acoustic session", channel: "Music", metadata: "" },
+    { title: "The history of typography", channel: "Design", metadata: "Documentary" }
+  ];
+  assert.deepEqual(core.filterCardsByMood(cards, "music").map((card) => card.title), ["Live acoustic session"]);
+  assert.deepEqual(core.filterCardsByMood(cards, "funny"), cards);
 });

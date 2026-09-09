@@ -44,6 +44,10 @@ h1 {
   cursor: pointer;
 }
 
+.toggle-row + .toggle-row {
+  margin-top: 10px;
+}
+
 .toggle-row strong,
 .toggle-row small {
   display: block;
