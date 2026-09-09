@@ -334,6 +334,12 @@
       if (button) return button;
     }
 
+    const nativeAvatar = Array.from(
+      document.querySelectorAll("ytd-masthead img, ytd-topbar-menu-button-renderer img, yt-avatar-shape img")
+    ).find((image) => /\/yti\//.test(bestImageSource(image)));
+    const avatarButton = nativeAvatar?.closest("button, [role='button']");
+    if (avatarButton && !avatarButton.closest(`#${ROOT_ID}`)) return avatarButton;
+
     return null;
   }
 
@@ -344,7 +350,8 @@
     if (!state.avatarSource) {
       const profileImage = Array.from(document.images).find((image) => {
         if (image.closest(`#${ROOT_ID}`)) return false;
-        return /\/yti\//.test(bestImageSource(image));
+        const source = bestImageSource(image);
+        return /\/yti\//.test(source) || Boolean(image.closest("ytd-masthead, ytd-topbar-menu-button-renderer"));
       });
       const profileImageSource = bestImageSource(profileImage);
       if (profileImageSource) state.avatarSource = profileImageSource;
@@ -352,7 +359,9 @@
 
     if (!state.avatarSource) {
       for (const script of document.scripts) {
-        const match = script.textContent.match(/https:\/\/yt3\.ggpht\.com\/yti\/[^"\\\s]+/);
+        const match = script.textContent.match(
+          /https:\/\/yt3\.(?:ggpht|googleusercontent)\.com\/yti\/[^"\\\s]+/
+        );
         if (!match) continue;
         state.avatarSource = match[0].replace(/\\u0026/g, "&");
         break;
@@ -377,7 +386,7 @@
       accountButton.appendChild(avatar);
       accountButton.disabled = false;
     } else {
-      accountButton.textContent = "f";
+      accountButton.textContent = "A";
       accountButton.classList.add("is-fallback");
       accountButton.disabled = false;
     }
