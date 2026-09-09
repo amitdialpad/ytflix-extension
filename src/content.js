@@ -794,10 +794,6 @@
 
     const overlay = makeElement("div", "ytflix-card__overlay");
     const actions = makeElement("div", "ytflix-card__actions");
-    const play = makeElement("a", "ytflix-card-action ytflix-card-action--play", "▶");
-    play.href = card.href;
-    play.setAttribute("aria-label", `Play ${card.title}`);
-    play.title = "Play";
     const listButton = createMyListButton(card);
     const info = makeElement("button", "ytflix-card-action", "i");
     info.type = "button";
@@ -808,7 +804,7 @@
       event.stopPropagation();
       openDetails(card);
     });
-    actions.append(play, listButton, info);
+    actions.append(listButton, info);
     overlay.appendChild(actions);
     overlay.appendChild(makeElement("p", "ytflix-card__match", `${core.matchScore(card)}% your vibe`));
     overlay.appendChild(makeElement("h3", "ytflix-card__title", card.title));

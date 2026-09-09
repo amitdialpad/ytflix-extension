@@ -681,20 +681,20 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 .ytflix-card__overlay {
   position: relative;
   z-index: 4;
-  min-height: 116px;
-  padding: 54px 13px 14px;
+  min-height: 88px;
+  padding: 14px 13px;
   background: linear-gradient(180deg, #1d1d1d, #141414);
 }
 
 .ytflix-card__actions {
   position: absolute;
   z-index: 1;
-  top: 12px;
-  left: 12px;
+  top: -43px;
+  right: 10px;
   display: flex;
   gap: 7px;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(6px);
   transition: opacity 180ms ease, transform 180ms var(--ytflix-ease-out);
 }
 
@@ -705,7 +705,9 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 50%;
-  background: #242424;
+  background: rgba(18, 18, 18, 0.9);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
   color: white !important;
   cursor: pointer;
   font: inherit;
@@ -721,13 +723,6 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   border-color: white;
   background: #3a3a3a;
   outline: none;
-}
-
-.ytflix-card-action--play {
-  border-color: white;
-  background: white;
-  color: #111 !important;
-  font-size: 12px;
 }
 
 .ytflix-card-action.is-saved {
