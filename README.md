@@ -24,9 +24,9 @@ Keep the unzipped folder on your computer after installing it. Chrome needs it t
 
 Use the YTFLIX toolbar popup to switch between **Useless project #4984** and classic YouTube.
 
-## Demo
+## Screenshot
+<img width="1582" height="893" alt="Screenshot 2026-09-09 at 15 51 18" src="https://github.com/user-attachments/assets/77587554-68c4-48be-8013-8a5d969bf6db" />
 
-https://github.com/user-attachments/assets/ec2c28fb-028b-4a8c-ad27-364254dadd25
 
 YTFLIX recuts the live YouTube desktop interface as a cinematic streaming library. It uses the thumbnails, titles, links, player, account state, and actions already rendered by YouTube. It does not call YouTube APIs or replace the video player.
 
