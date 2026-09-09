@@ -1,0 +1,695 @@
+:root {
+  --ytflix-black: #050505;
+  --ytflix-surface: #141414;
+  --ytflix-surface-raised: #242424;
+  --ytflix-red: #e50914;
+  --ytflix-white: #f5f5f1;
+  --ytflix-muted: #b3b3b3;
+  --ytflix-gutter: clamp(28px, 4vw, 72px);
+  --ytflix-header-height: 68px;
+}
+
+html[data-ytflix-pending="true"] {
+  background: var(--ytflix-black) !important;
+}
+
+html[data-ytflix-pending="true"]::before {
+  position: fixed;
+  z-index: 2147483646;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--ytflix-black);
+  color: var(--ytflix-red);
+  content: "YTFLIX";
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+html[data-ytflix-pending="true"]::after {
+  position: fixed;
+  z-index: 2147483647;
+  top: calc(50% + 28px);
+  left: 50%;
+  margin-left: -9px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  content: "";
+  animation: ytflix-loading-spin 700ms linear infinite;
+}
+
+html[data-ytflix-enabled="true"],
+html[data-ytflix-enabled="true"] body {
+  background: var(--ytflix-black) !important;
+  color: var(--ytflix-white) !important;
+}
+
+html[data-ytflix-enabled="true"] ytd-masthead,
+html[data-ytflix-enabled="true"] tp-yt-app-drawer,
+html[data-ytflix-enabled="true"] #guide {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="browse"],
+html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] body {
+  overflow: hidden !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] ytd-page-manager {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#ytflix-root,
+#ytflix-watch-extras {
+  box-sizing: border-box;
+  color: var(--ytflix-white);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.35;
+}
+
+#ytflix-root *,
+#ytflix-root *::before,
+#ytflix-root *::after,
+#ytflix-watch-extras *,
+#ytflix-watch-extras *::before,
+#ytflix-watch-extras *::after {
+  box-sizing: border-box;
+}
+
+html[data-ytflix-mode="browse"] #ytflix-root {
+  position: fixed;
+  z-index: 2100;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--ytflix-black);
+}
+
+html[data-ytflix-mode="watch"] #ytflix-root {
+  position: relative;
+  z-index: 2100;
+  width: 100%;
+  height: 0;
+}
+
+.ytflix-header {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--ytflix-header-height);
+  padding: 0 var(--ytflix-gutter);
+  background: linear-gradient(180deg, rgba(5, 5, 5, 0.98), rgba(5, 5, 5, 0.78));
+  box-shadow: 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px);
+}
+
+html[data-ytflix-mode="watch"] .ytflix-header {
+  position: fixed;
+  width: 100%;
+}
+
+.ytflix-header__left,
+.ytflix-header__tools,
+.ytflix-nav {
+  display: flex;
+  align-items: center;
+}
+
+.ytflix-header__left {
+  min-width: 0;
+  gap: 38px;
+}
+
+.ytflix-header__tools {
+  gap: 16px;
+}
+
+.ytflix-logo {
+  color: var(--ytflix-red) !important;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-decoration: none !important;
+}
+
+.ytflix-nav {
+  gap: 24px;
+}
+
+.ytflix-nav__link {
+  color: #d8d8d8 !important;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: color 150ms ease;
+}
+
+.ytflix-nav__link:hover,
+.ytflix-nav__link.is-active {
+  color: #ffffff !important;
+}
+
+.ytflix-nav__link.is-active {
+  font-weight: 700;
+}
+
+.ytflix-search {
+  position: relative;
+}
+
+.ytflix-search::before {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  color: #dedede;
+  content: "⌕";
+  font-size: 21px;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-53%);
+}
+
+.ytflix-search__input {
+  width: clamp(170px, 17vw, 280px);
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 3px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.58);
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  padding: 0 12px 0 38px;
+  transition: width 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.ytflix-search__input:focus {
+  width: clamp(220px, 21vw, 340px);
+  border-color: white;
+  background: rgba(0, 0, 0, 0.88);
+}
+
+.ytflix-search__input::placeholder {
+  color: #9f9f9f;
+}
+
+.ytflix-account {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: #272727;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.ytflix-account:disabled {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.ytflix-account.is-fallback {
+  background: #075f46;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.ytflix-account img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.ytflix-main {
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+.ytflix-hero {
+  position: relative;
+  display: flex;
+  min-height: clamp(460px, 65vh, 720px);
+  align-items: flex-end;
+  overflow: hidden;
+  padding: 0 var(--ytflix-gutter) 104px;
+  isolation: isolate;
+}
+
+.ytflix-hero::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 5, 5, 0.98) 0%, rgba(5, 5, 5, 0.74) 34%, rgba(5, 5, 5, 0.1) 72%),
+    linear-gradient(0deg, var(--ytflix-black) 0%, transparent 35%);
+  content: "";
+}
+
+.ytflix-hero__art {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  background: radial-gradient(circle at 70% 30%, #3a3a3a, #101010 70%);
+}
+
+.ytflix-hero__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  filter: saturate(0.88) contrast(1.05);
+}
+
+.ytflix-hero__art.is-missing::after,
+.ytflix-card__art.is-missing::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: clamp(42px, 5vw, 68px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.72);
+  content: "▶";
+  font-size: clamp(16px, 2vw, 24px);
+  padding-left: 0.12em;
+  transform: translate(-50%, -50%);
+}
+
+.ytflix-hero__art.is-missing,
+.ytflix-card__art.is-missing {
+  background:
+    radial-gradient(circle at 72% 22%, hsl(var(--ytflix-placeholder-hue-alt) 72% 52% / 0.52), transparent 32%),
+    radial-gradient(circle at 16% 82%, hsl(var(--ytflix-placeholder-hue) 68% 44% / 0.5), transparent 38%),
+    linear-gradient(135deg, hsl(var(--ytflix-placeholder-hue) 30% 18%), #101010 72%);
+}
+
+.ytflix-hero__content {
+  width: min(610px, 52vw);
+}
+
+.ytflix-eyebrow {
+  margin: 0 0 12px;
+  color: var(--ytflix-white);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.ytflix-hero__title {
+  margin: 0;
+  color: white;
+  font-size: clamp(42px, 5.8vw, 82px);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+  text-wrap: balance;
+}
+
+.ytflix-hero__meta {
+  margin: 22px 0 0;
+  color: #e5e5e5;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ytflix-hero__description {
+  max-width: 520px;
+  margin: 13px 0 25px;
+  color: #d7d7d7;
+  font-size: clamp(15px, 1.25vw, 19px);
+  line-height: 1.48;
+}
+
+.ytflix-button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0 26px;
+  color: #111 !important;
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none !important;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.ytflix-button--primary {
+  background: white;
+}
+
+.ytflix-button--primary:hover {
+  background: #d8d8d8;
+  transform: translateY(-1px);
+}
+
+.ytflix-rail-section,
+.ytflix-grid-section {
+  position: relative;
+  z-index: 2;
+  margin-top: 34px;
+  padding: 0 var(--ytflix-gutter);
+}
+
+.ytflix-library-page {
+  min-height: 100vh;
+  padding: calc(var(--ytflix-header-height) + 52px) var(--ytflix-gutter) 80px;
+}
+
+.ytflix-library-page > .ytflix-rail-section {
+  margin-top: 34px;
+  padding: 0;
+}
+
+.ytflix-hero + .ytflix-rail-section {
+  margin-top: -64px;
+}
+
+.ytflix-rail-section__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 13px;
+}
+
+.ytflix-rail-section__title {
+  margin: 0;
+  color: #ececec;
+  font-size: clamp(18px, 1.55vw, 25px);
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.ytflix-rail-controls {
+  display: flex;
+  gap: 7px;
+}
+
+.ytflix-rail-control {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 25px;
+  line-height: 1;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.ytflix-rail-control:hover {
+  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ytflix-rail {
+  display: grid;
+  grid-auto-columns: minmax(245px, 18.5vw);
+  grid-auto-flow: column;
+  gap: 9px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 5px 2px 32px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.ytflix-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.ytflix-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 5px;
+  outline: none;
+  background: var(--ytflix-surface);
+  color: white !important;
+  text-decoration: none !important;
+  scroll-snap-align: start;
+  transform-origin: center bottom;
+  transition: z-index 180ms step-start, box-shadow 180ms ease, transform 180ms cubic-bezier(0.2, 0.72, 0.2, 1);
+}
+
+.ytflix-card:hover,
+.ytflix-card:focus-visible {
+  z-index: 4;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.58);
+  transform: translateY(-4px) scale(1.035);
+}
+
+.ytflix-card:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+.ytflix-card__art {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: #252525;
+}
+
+.ytflix-card__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 180ms ease, transform 220ms ease;
+}
+
+.ytflix-card:hover .ytflix-card__art img {
+  filter: brightness(0.72);
+  transform: scale(1.045);
+}
+
+.ytflix-card__overlay {
+  min-height: 88px;
+  padding: 12px 13px 14px;
+  background: linear-gradient(180deg, #1d1d1d, #141414);
+}
+
+.ytflix-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: white;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.28;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ytflix-card__channel,
+.ytflix-card__metadata {
+  overflow: hidden;
+  margin: 5px 0 0;
+  color: var(--ytflix-muted);
+  font-size: 12px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ytflix-card__duration,
+.ytflix-card__sponsored {
+  position: absolute;
+  z-index: 2;
+  right: 7px;
+  bottom: 7px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.78);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 5px;
+}
+
+.ytflix-card__sponsored {
+  top: 7px;
+  bottom: auto;
+  background: rgba(229, 9, 20, 0.9);
+}
+
+.ytflix-card__rank {
+  position: absolute;
+  z-index: 1;
+  bottom: -15px;
+  left: -3px;
+  color: var(--ytflix-black);
+  font-size: 92px;
+  font-weight: 900;
+  line-height: 1;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2px #d5d5d5;
+  text-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+}
+
+.ytflix-grid-section {
+  margin-top: 0;
+  padding-top: calc(var(--ytflix-header-height) + 52px);
+}
+
+.ytflix-hero + .ytflix-grid-section {
+  margin-top: -40px;
+  padding-top: 0;
+}
+
+.ytflix-page-title {
+  margin: 0 0 28px;
+  color: white;
+  font-size: clamp(34px, 4vw, 58px);
+  letter-spacing: -0.045em;
+}
+
+.ytflix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+  gap: 24px 10px;
+}
+
+.ytflix-skeleton {
+  overflow: hidden;
+  background: linear-gradient(100deg, #141414 20%, #262626 42%, #141414 66%);
+  background-size: 300% 100%;
+  animation: ytflix-shimmer 1.45s linear infinite;
+}
+
+.ytflix-skeleton--hero {
+  height: 58vh;
+}
+
+.ytflix-skeleton-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 36px var(--ytflix-gutter) 0;
+}
+
+.ytflix-skeleton--card {
+  aspect-ratio: 16 / 9;
+  border-radius: 5px;
+}
+
+@keyframes ytflix-shimmer {
+  to { background-position: -150% 0; }
+}
+
+@keyframes ytflix-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Watch pages keep YouTube's real player and interactions. */
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-app {
+  background: var(--ytflix-black) !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-flexy {
+  --ytd-watch-flexy-masthead-height: var(--ytflix-header-height) !important;
+  background: var(--ytflix-black) !important;
+  padding-top: var(--ytflix-header-height) !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-flexy #columns {
+  max-width: 1560px !important;
+  margin: 0 auto !important;
+  padding: 26px var(--ytflix-gutter) 80px !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-flexy #primary {
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-flexy #secondary {
+  display: none !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] #movie_player,
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] #player-container-inner {
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.64);
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-metadata,
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] #comments {
+  color: var(--ytflix-white) !important;
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-metadata h1 {
+  font-size: clamp(24px, 2vw, 34px) !important;
+  letter-spacing: -0.025em !important;
+}
+
+#ytflix-watch-extras {
+  margin: 44px 0 16px;
+}
+
+#ytflix-watch-extras .ytflix-rail-section {
+  margin-top: 0;
+  padding: 0;
+}
+
+@media (max-width: 1000px) {
+  .ytflix-nav {
+    display: none;
+  }
+
+  .ytflix-header__left {
+    gap: 18px;
+  }
+
+  .ytflix-search__input {
+    width: 190px;
+  }
+
+  .ytflix-hero__content {
+    width: min(680px, 76vw);
+  }
+
+  .ytflix-rail {
+    grid-auto-columns: minmax(230px, 33vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ytflix-root *,
+  #ytflix-watch-extras * {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "YTFLIX",
+  "short_name": "YTFLIX",
+  "version": "0.1.0",
+  "description": "Useless project #4984: YouTube recut as a cinematic streaming library.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_title": "YTFLIX",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "css": [
+        "src/styles.css"
+      ],
+      "js": [
+        "src/core.js",
+        "src/content.js"
+      ],
+      "run_at": "document_start",
+      "world": "ISOLATED"
+    }
+  ]
+}
