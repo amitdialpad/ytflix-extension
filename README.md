@@ -6,31 +6,29 @@
 >
 > Want to contribute to this stupid project by fixing bugs or adding another feature? Feel free to raise a PR. Let's make it properly useless.
 
-YTFLIX recuts the live YouTube desktop interface as a cinematic streaming library. It uses the thumbnails, titles, links, player, account state, and actions already rendered by YouTube. It does not call YouTube APIs or replace the video player.
+## [⬇ Download YTFLIX here](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
+
+No coding or Git required.
+
+## Install in Chrome
+
+1. Click **Download YTFLIX here** above.
+2. Unzip the downloaded file. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
+3. Open `chrome://extensions` in Google Chrome.
+4. Turn on **Developer mode** in the top-right corner.
+5. Click **Load unpacked**.
+6. Select the unzipped folder named `ytflix-extension-main`.
+7. Open YouTube—or reload it if it was already open.
+
+Keep the unzipped folder on your computer after installing it. Chrome needs it to run YTFLIX.
+
+Use the YTFLIX toolbar popup to switch between **Useless project #4984** and classic YouTube.
 
 ## Demo
 
 https://github.com/user-attachments/assets/ec2c28fb-028b-4a8c-ad27-364254dadd25
 
-
-## Install from source
-
-You need desktop Google Chrome and Git.
-
-```sh
-git clone https://github.com/amitdialpad/ytflix-extension.git
-cd ytflix-extension
-```
-
-Then:
-
-1. Open `chrome://extensions` in Chrome.
-2. Turn on **Developer mode**.
-3. Choose **Load unpacked**.
-4. Select the cloned `ytflix-extension` folder.
-5. Open or reload `https://www.youtube.com`.
-
-Use the YTFLIX toolbar popup to switch between **Useless project #4984** and classic YouTube.
+YTFLIX recuts the live YouTube desktop interface as a cinematic streaming library. It uses the thumbnails, titles, links, player, account state, and actions already rendered by YouTube. It does not call YouTube APIs or replace the video player.
 
 ## What changes
 
@@ -45,6 +43,10 @@ Use the YTFLIX toolbar popup to switch between **Useless project #4984** and cla
 - Missing images use varied color artwork instead of repeating a logo placeholder.
 
 ## Updating your local copy
+
+Download the latest ZIP using the link at the top, replace your old YTFLIX folder, then press **Reload** on the YTFLIX card at `chrome://extensions`.
+
+If you installed it with Git instead, run:
 
 ```sh
 git pull
@@ -78,7 +80,7 @@ node --test tests/core.test.js
 
 ## Contributing
 
-1. Fork the repository.
+1. Fork the repository and clone your fork.
 2. Create a branch: `git switch -c fix/short-description`.
 3. Make the smallest useful change.
 4. Run the checks above and test the unpacked extension on YouTube.
