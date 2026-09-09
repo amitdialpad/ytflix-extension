@@ -1364,6 +1364,20 @@ html[data-ytflix-lights-down] .ytflix-header {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.94), transparent);
   box-shadow: none;
   backdrop-filter: none;
+  opacity: 0;
+  transform: translateY(-24%);
+  transition: opacity 180ms ease, transform 220ms var(--ytflix-ease-out);
+}
+
+html[data-ytflix-lights-down] .ytflix-header:hover,
+html[data-ytflix-lights-down] .ytflix-header:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+html[data-ytflix-enabled="true"][data-ytflix-mode="watch"][data-ytflix-lights-down] ytd-watch-flexy {
+  --ytd-watch-flexy-masthead-height: 0px !important;
+  padding-top: 0 !important;
 }
 
 html[data-ytflix-lights-down] ytd-watch-flexy #columns {
