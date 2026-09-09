@@ -920,6 +920,7 @@
 
     const root = makeElement("div", "ytflix-app");
     root.id = ROOT_ID;
+    root.dataset.ytflixScrollContext = `personal:${state.activeView}:${state.activeMood}`;
     root.appendChild(createHeader("home"));
     const main = makeElement("main", "ytflix-main ytflix-main--collection");
 
@@ -943,6 +944,7 @@
   function createSkeleton(route) {
     const root = makeElement("div", "ytflix-app ytflix-app--loading");
     root.id = ROOT_ID;
+    root.dataset.ytflixScrollContext = `${route}:${location.pathname}${location.search}`;
     root.appendChild(createHeader(route));
     const main = makeElement("main", "ytflix-main");
     const hero = makeElement("div", "ytflix-skeleton ytflix-skeleton--hero");
@@ -959,9 +961,35 @@
   }
 
   function installRoot(root, completesStartup = true) {
-    document.getElementById(ROOT_ID)?.remove();
+    const previousRoot = document.getElementById(ROOT_ID);
+    const preserveScroll = Boolean(
+      previousRoot &&
+      previousRoot.dataset.ytflixScrollContext === root.dataset.ytflixScrollContext
+    );
+    const scrollTop = preserveScroll ? previousRoot.scrollTop : 0;
+    const railOffsets = new Map();
+    if (preserveScroll) {
+      for (const section of previousRoot.querySelectorAll(".ytflix-rail-section")) {
+        const title = section.querySelector(".ytflix-rail-section__title")?.textContent || "";
+        const rail = section.querySelector(".ytflix-rail");
+        if (title && rail) railOffsets.set(title, rail.scrollLeft);
+      }
+    }
+    previousRoot?.remove();
     document.body.appendChild(root);
+
+    const restoreScroll = () => {
+      if (!preserveScroll) return;
+      root.scrollTop = scrollTop;
+      for (const section of root.querySelectorAll(".ytflix-rail-section")) {
+        const title = section.querySelector(".ytflix-rail-section__title")?.textContent || "";
+        const rail = section.querySelector(".ytflix-rail");
+        if (rail) rail.scrollLeft = railOffsets.get(title) || 0;
+      }
+    };
+    restoreScroll();
     window.requestAnimationFrame(() => {
+      restoreScroll();
       delete document.documentElement.dataset.ytflixPending;
       if (completesStartup) finishStartupSequence();
     });
@@ -974,6 +1002,7 @@
     document.getElementById(TOAST_ID)?.remove();
     const root = makeElement("div", "ytflix-app");
     root.id = ROOT_ID;
+    root.dataset.ytflixScrollContext = `${route}:${location.pathname}${location.search}`;
     root.appendChild(createHeader(route));
     const main = makeElement("main", "ytflix-main");
     const pageTitle = getNativePageTitle(route);
@@ -1032,6 +1061,7 @@
   function renderWatch(route, cards) {
     const root = makeElement("div", "ytflix-app ytflix-app--watch");
     root.id = ROOT_ID;
+    root.dataset.ytflixScrollContext = `${route}:${location.pathname}${location.search}`;
     root.appendChild(createHeader(route));
     installRoot(root);
     scheduleStillWatching();
