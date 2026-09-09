@@ -13,7 +13,7 @@ No coding or Git required.
 ## Install in Chrome
 
 1. Click **Download YTFLIX here** above.
-2. Unzip the downloaded file. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
+2. Unzip the downloaded file. On a Mac, double-click it.
 3. Open `chrome://extensions` in Google Chrome.
 4. Turn on **Developer mode** in the top-right corner.
 5. Click **Load unpacked**.
