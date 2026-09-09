@@ -680,19 +680,21 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 
 .ytflix-card__overlay {
   position: relative;
-  min-height: 88px;
-  padding: 26px 13px 14px;
+  z-index: 4;
+  min-height: 116px;
+  padding: 54px 13px 14px;
   background: linear-gradient(180deg, #1d1d1d, #141414);
 }
 
 .ytflix-card__actions {
   position: absolute;
-  top: 0;
+  z-index: 1;
+  top: 12px;
   left: 12px;
   display: flex;
   gap: 7px;
   opacity: 0;
-  transform: translateY(-35%);
+  transform: translateY(-6px);
   transition: opacity 180ms ease, transform 180ms var(--ytflix-ease-out);
 }
 
@@ -803,7 +805,7 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 
 .ytflix-card:focus-within .ytflix-card__actions {
   opacity: 1;
-  transform: translateY(-50%);
+  transform: translateY(0);
 }
 
 .ytflix-dialog {
@@ -1434,7 +1436,7 @@ html[data-ytflix-lights-down] #player-container-inner {
 
   .ytflix-card:hover .ytflix-card__actions {
     opacity: 1;
-    transform: translateY(-50%);
+    transform: translateY(0);
     transition-delay: 350ms;
   }
 }
