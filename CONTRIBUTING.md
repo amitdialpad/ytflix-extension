@@ -21,8 +21,10 @@ Thanks for helping make this properly useless.
    ```sh
    node --check src/core.js
    node --check src/content.js
+   node --check src/background.js
+   node --check offscreen/offscreen.js
    node --check popup/popup.js
-   node --test tests/core.test.js
+   node --test tests/*.test.js
    ```
 
 6. Reload the extension from `chrome://extensions` and test YouTube again.

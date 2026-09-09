@@ -9,6 +9,11 @@
   const ACTIVE_ATTRIBUTE = "data-ytflix-enabled";
   const MODE_ATTRIBUTE = "data-ytflix-mode";
   const ROUTE_ATTRIBUTE = "data-ytflix-route";
+  const STARTUP_ID = "ytflix-startup";
+  const CLAIM_STARTUP_MESSAGE = "ytflix-claim-startup";
+  const STARTUP_SOUND_MESSAGE = "ytflix-play-startup-sound";
+  const STARTUP_MINIMUM_DURATION = 2100;
+  const STARTUP_EXIT_DURATION = 320;
   const EMPTY_STATE_TIMEOUT = 6500;
   const CARD_SELECTORS = [
     "yt-lockup-view-model",
@@ -33,7 +38,11 @@
     emptyHref: "",
     emptySince: 0,
     fallbackHref: "",
-    isNavigating: false
+    isNavigating: false,
+    startupSoundRequested: false,
+    startupStartedAt: 0,
+    startupExitTimer: null,
+    startupRemoveTimer: null
   };
 
   document.documentElement.dataset.ytflixPending = "true";
@@ -43,6 +52,76 @@
     if (className) node.className = className;
     if (typeof text === "string") node.textContent = text;
     return node;
+  }
+
+  function createStartupOverlay() {
+    const overlay = makeElement("div", "ytflix-startup");
+    overlay.id = STARTUP_ID;
+    overlay.setAttribute("aria-hidden", "true");
+
+    const ribbons = makeElement("div", "ytflix-startup__ribbons");
+    ["-210px", "-140px", "-72px", "0px", "72px", "140px", "210px"].forEach((offset, index) => {
+      const ribbon = makeElement("span", "ytflix-startup__ribbon");
+      ribbon.style.setProperty("--ytflix-ribbon-index", String(index));
+      ribbon.style.setProperty("--ytflix-ribbon-offset", offset);
+      ribbons.appendChild(ribbon);
+    });
+
+    const beam = makeElement("span", "ytflix-startup__beam");
+    const monogram = makeElement("div", "ytflix-startup__monogram", "YT");
+    const logo = makeElement("div", "ytflix-startup__logo");
+    Array.from("YTFLIX").forEach((letter, index) => {
+      const character = makeElement("span", "ytflix-startup__letter", letter);
+      character.style.setProperty("--ytflix-letter-index", String(index));
+      logo.appendChild(character);
+    });
+
+    overlay.append(ribbons, beam, monogram, logo);
+    return overlay;
+  }
+
+  function requestStartupSound() {
+    if (state.startupSoundRequested) return;
+    state.startupSoundRequested = true;
+    void chrome.runtime.sendMessage({ type: STARTUP_SOUND_MESSAGE }).catch(() => {});
+  }
+
+  function startStartupSequence() {
+    if (state.startupStartedAt || document.getElementById(STARTUP_ID)) return;
+    state.startupStartedAt = performance.now();
+    delete document.documentElement.dataset.ytflixPending;
+    document.body.appendChild(createStartupOverlay());
+    requestStartupSound();
+  }
+
+  function finishStartupSequence(immediate = false) {
+    const overlay = document.getElementById(STARTUP_ID);
+    if (!overlay) return;
+
+    window.clearTimeout(state.startupExitTimer);
+    window.clearTimeout(state.startupRemoveTimer);
+    const elapsed = performance.now() - state.startupStartedAt;
+    const delay = immediate ? 0 : Math.max(0, STARTUP_MINIMUM_DURATION - elapsed);
+
+    state.startupExitTimer = window.setTimeout(() => {
+      overlay.classList.add("is-complete");
+      state.startupRemoveTimer = window.setTimeout(
+        () => overlay.remove(),
+        immediate ? 0 : STARTUP_EXIT_DURATION
+      );
+    }, delay);
+  }
+
+  async function claimStartupSequence() {
+    const route = core.classifyRoute(location.href);
+    if (route === "unsupported" || route === "shorts") return;
+
+    try {
+      const result = await chrome.runtime.sendMessage({ type: CLAIM_STARTUP_MESSAGE });
+      if (result?.claimed) startStartupSequence();
+    } catch (_error) {
+      // Keep loading the interface if the startup ident cannot be claimed.
+    }
   }
 
   function nativeScope() {
@@ -472,11 +551,12 @@
     return root;
   }
 
-  function installRoot(root) {
+  function installRoot(root, completesStartup = true) {
     document.getElementById(ROOT_ID)?.remove();
     document.body.appendChild(root);
     window.requestAnimationFrame(() => {
       delete document.documentElement.dataset.ytflixPending;
+      if (completesStartup) finishStartupSequence();
     });
   }
 
@@ -535,6 +615,7 @@
   }
 
   function showNativeRoute(route) {
+    finishStartupSequence(true);
     document.getElementById(ROOT_ID)?.remove();
     document.getElementById(WATCH_EXTRAS_ID)?.remove();
     document.documentElement.removeAttribute(ACTIVE_ATTRIBUTE);
@@ -580,7 +661,7 @@
         return;
       }
 
-      if (!document.getElementById(ROOT_ID)) installRoot(createSkeleton(route));
+      if (!document.getElementById(ROOT_ID)) installRoot(createSkeleton(route), false);
       scheduleRender(Math.max(100, remaining));
       return;
     }
@@ -680,15 +761,26 @@
       await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
     }
 
+    let enabled = true;
     try {
       const settings = await chrome.storage.local.get({ enabled: true });
-      setEnabled(settings.enabled !== false);
+      enabled = settings.enabled !== false;
     } catch (_error) {
-      setEnabled(true);
+      enabled = true;
     }
 
+    if (enabled) await claimStartupSequence();
+    setEnabled(enabled);
+
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === "local" && changes.enabled) setEnabled(changes.enabled.newValue !== false);
+      if (areaName !== "local" || !changes.enabled) return;
+      const nextEnabled = changes.enabled.newValue !== false;
+      if (!nextEnabled) {
+        setEnabled(false);
+        return;
+      }
+
+      void claimStartupSequence().finally(() => setEnabled(true));
     });
   }
 

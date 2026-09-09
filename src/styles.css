@@ -7,6 +7,8 @@
   --ytflix-muted: #b3b3b3;
   --ytflix-gutter: clamp(28px, 4vw, 72px);
   --ytflix-header-height: 68px;
+  --ytflix-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ytflix-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 html[data-ytflix-pending="true"] {
@@ -41,6 +43,113 @@ html[data-ytflix-pending="true"]::after {
   border-radius: 50%;
   content: "";
   animation: ytflix-loading-spin 700ms linear infinite;
+}
+
+#ytflix-startup {
+  position: fixed;
+  z-index: 2147483647;
+  inset: 0;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  background: var(--ytflix-black);
+  pointer-events: none;
+}
+
+.ytflix-startup__monogram,
+.ytflix-startup__logo {
+  position: relative;
+  z-index: 1;
+  color: var(--ytflix-red);
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(54px, 8vw, 112px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-shadow: 0 0 28px rgba(229, 9, 20, 0.24);
+}
+
+.ytflix-startup__monogram {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.96);
+  animation: ytflix-startup-monogram 900ms var(--ytflix-ease-out) 80ms both;
+}
+
+.ytflix-startup__logo {
+  display: flex;
+  transform: scale(0.96);
+  animation: ytflix-startup-logo-in 1300ms var(--ytflix-ease-out) 720ms both;
+}
+
+.ytflix-startup__logo::after {
+  position: absolute;
+  inset: -20% -12%;
+  background: linear-gradient(90deg, transparent 35%, rgba(255, 255, 255, 0.72) 50%, transparent 65%);
+  content: "";
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(-140%) skewX(-12deg);
+  animation: ytflix-startup-sweep 1000ms var(--ytflix-ease-in-out) 980ms both;
+}
+
+.ytflix-startup__letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(28%) scale(0.96);
+  animation: ytflix-startup-letter-in 540ms var(--ytflix-ease-out) both;
+  animation-delay: calc(800ms + var(--ytflix-letter-index) * 55ms);
+}
+
+.ytflix-startup__ribbons {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.ytflix-startup__ribbon {
+  position: absolute;
+  width: clamp(10px, 1.2vw, 18px);
+  height: min(58vh, 620px);
+  color: var(--ytflix-red);
+  background: var(--ytflix-red);
+  box-shadow: 0 0 30px currentColor;
+  opacity: 0;
+  transform: translateX(0) scaleY(0.08) skewX(-10deg);
+  animation: ytflix-startup-ribbon 1200ms var(--ytflix-ease-in-out) both;
+  animation-delay: calc(420ms + var(--ytflix-ribbon-index) * 35ms);
+}
+
+.ytflix-startup__ribbon:nth-child(2),
+.ytflix-startup__ribbon:nth-child(6) {
+  color: #ff3d23;
+  background: #ff3d23;
+}
+
+.ytflix-startup__ribbon:nth-child(3),
+.ytflix-startup__ribbon:nth-child(5) {
+  color: #b20710;
+  background: #b20710;
+}
+
+.ytflix-startup__ribbon:nth-child(4) {
+  color: #ff8a00;
+  background: #ff8a00;
+}
+
+.ytflix-startup__beam {
+  position: absolute;
+  width: clamp(120px, 22vw, 320px);
+  height: 150vh;
+  background: linear-gradient(90deg, transparent, rgba(229, 9, 20, 0.18), transparent);
+  opacity: 0;
+  transform: scaleX(0.08) rotate(10deg);
+  animation: ytflix-startup-beam 1500ms var(--ytflix-ease-in-out) 300ms both;
+}
+
+#ytflix-startup.is-complete {
+  animation: ytflix-startup-exit 320ms var(--ytflix-ease-out) both;
 }
 
 html[data-ytflix-enabled="true"],
@@ -610,6 +719,105 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   to { transform: rotate(360deg); }
 }
 
+@keyframes ytflix-startup-monogram {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  22%,
+  68% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes ytflix-startup-logo-in {
+  0% {
+    opacity: 1;
+    transform: scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ytflix-startup-letter-in {
+  from {
+    opacity: 0;
+    transform: translateY(28%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ytflix-startup-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-12deg);
+  }
+  25% {
+    opacity: 0.78;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(140%) skewX(-12deg);
+  }
+}
+
+@keyframes ytflix-startup-ribbon {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scaleY(0.08) skewX(-10deg);
+  }
+  24% {
+    opacity: 0.9;
+  }
+  62% {
+    opacity: 0.72;
+    transform: translateX(var(--ytflix-ribbon-offset)) scaleY(1) skewX(-10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--ytflix-ribbon-offset)) scaleY(1.12) skewX(-10deg);
+  }
+}
+
+@keyframes ytflix-startup-beam {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.08) rotate(10deg);
+  }
+  42% {
+    opacity: 1;
+    transform: scaleX(1) rotate(10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.35) rotate(10deg);
+  }
+}
+
+@keyframes ytflix-startup-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes ytflix-startup-reduced-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Watch pages keep YouTube's real player and interactions. */
 html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-app {
   background: var(--ytflix-black) !important;
@@ -685,6 +893,26 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="watch"] ytd-watch-metadata h1
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ytflix-startup__ribbons,
+  .ytflix-startup__beam,
+  .ytflix-startup__logo::after {
+    display: none;
+  }
+
+  .ytflix-startup__monogram {
+    display: none;
+  }
+
+  .ytflix-startup__logo,
+  .ytflix-startup__letter {
+    transform: none;
+    animation: ytflix-startup-reduced-in 200ms var(--ytflix-ease-out) both;
+  }
+
+  #ytflix-startup.is-complete {
+    animation-duration: 200ms;
+  }
+
   #ytflix-root *,
   #ytflix-watch-extras * {
     scroll-behavior: auto !important;

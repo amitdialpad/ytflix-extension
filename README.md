@@ -6,9 +6,9 @@
 >
 > Want to contribute to this stupid project by fixing bugs or adding another feature? Feel free to raise a PR. Let's make it properly useless.
 
-## [⬇ Download YTFLIX here](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
+## [⬇ Download the latest YTFLIX (v0.1.1)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
 
-No coding or Git required.
+No coding or Git required. This link always downloads the newest version from `main`, including the startup ident, jingle, and extension icon.
 
 ## Install in Chrome
 
@@ -40,6 +40,7 @@ YTFLIX recuts the live YouTube desktop interface as a cinematic streaming librar
 - Watch pages keep YouTube's native player and actions in a darker theater layout.
 - YouTube's single-page navigation is observed so YTFLIX rebuilds after route changes.
 - A startup cover holds the page until the YTFLIX shell is ready, avoiding a flash of the original homepage.
+- A YT-to-YTFLIX ribbon ident and bundled cinematic jingle play together once per Chrome session; the interface appears as soon as the visual finishes while the audio resolves.
 - Missing images use varied color artwork instead of repeating a logo placeholder.
 
 ## Updating your local copy
@@ -60,7 +61,11 @@ Then open `chrome://extensions`, press **Reload** on the YTFLIX card, and refres
 manifest.json        Chrome extension manifest
 src/core.js          URL, route, card, and thumbnail helpers
 src/content.js       YouTube extraction and YTFLIX rendering
+src/background.js    One-time startup sound coordination
 src/styles.css       Streaming-library presentation and startup cover
+offscreen/           Extension-owned startup audio playback
+assets/              Bundled startup jingle
+icons/               Extension and toolbar icon sizes
 popup/               Extension toolbar controls
 tests/core.test.js   Dependency-free Node tests for core behavior
 ```
@@ -74,8 +79,10 @@ Node.js 20 or newer is recommended.
 ```sh
 node --check src/core.js
 node --check src/content.js
+node --check src/background.js
+node --check offscreen/offscreen.js
 node --check popup/popup.js
-node --test tests/core.test.js
+node --test tests/*.test.js
 ```
 
 ## Contributing
@@ -90,12 +97,12 @@ Bug fixes, selector repairs, accessibility improvements, and properly useless fe
 
 ## Prototype boundaries
 
-- Desktop Chrome only; this is not yet packaged for the Chrome Web Store.
+- Desktop Chrome 109 or newer only; this is not yet packaged for the Chrome Web Store.
 - Shorts, Studio, uploads, purchases, account management, and unsupported routes stay native.
 - Rail headings are playful presentation labels, not YouTube recommendation metadata.
 - Sponsored cards remain labeled when YouTube exposes them; player ads are not intercepted or skipped.
 - No remote code, analytics, data collection, or extension-originated network requests.
-- The only saved setting is whether YTFLIX is on or off.
+- The only persistent saved setting is whether YTFLIX is on or off; the startup-ident gate resets when Chrome restarts.
 
 YouTube changes its DOM regularly. If extraction stops working, switch YTFLIX off from the popup and update the selector adapter in `src/content.js`.
 
