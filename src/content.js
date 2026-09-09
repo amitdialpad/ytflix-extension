@@ -20,7 +20,6 @@
   const STARTUP_MINIMUM_DURATION = 2100;
   const STARTUP_EXIT_DURATION = 320;
   const EMPTY_STATE_TIMEOUT = 6500;
-  const PREVIEW_DELAY = 700;
   const DIALOG_EXIT_DURATION = 180;
   const STILL_WATCHING_DELAY = 45 * 60 * 1000;
   const CARD_SELECTORS = [
@@ -51,13 +50,10 @@
     startupStartedAt: 0,
     startupExitTimer: null,
     startupRemoveTimer: null,
-    autoplayPreviews: true,
     myList: [],
     activeView: "",
     activeMood: "",
     lastCards: [],
-    previewTimer: null,
-    previewOwner: null,
     lightsDown: false,
     stillWatchingTimer: null,
     stillWatchingHref: ""
@@ -717,40 +713,6 @@
     return button;
   }
 
-  function stopPreview(owner = state.previewOwner) {
-    window.clearTimeout(state.previewTimer);
-    state.previewTimer = null;
-    if (!owner) return;
-    owner.classList.remove("is-previewing");
-    owner.querySelector(".ytflix-card__preview")?.remove();
-    if (state.previewOwner === owner) state.previewOwner = null;
-  }
-
-  function startPreview(owner, card) {
-    const videoId = core.videoIdFromUrl(card.href);
-    if (!state.autoplayPreviews || !videoId || !owner.isConnected) return;
-    stopPreview();
-
-    const preview = document.createElement("iframe");
-    preview.className = "ytflix-card__preview";
-    preview.title = `Muted preview of ${card.title}`;
-    preview.allow = "autoplay; encrypted-media";
-    preview.tabIndex = -1;
-    preview.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&playsinline=1&rel=0`;
-    owner.querySelector(".ytflix-card__art")?.appendChild(preview);
-    owner.classList.add("is-previewing");
-    state.previewOwner = owner;
-  }
-
-  function armPreview(owner, card) {
-    owner.addEventListener("pointerenter", () => {
-      if (!state.autoplayPreviews) return;
-      window.clearTimeout(state.previewTimer);
-      state.previewTimer = window.setTimeout(() => startPreview(owner, card), PREVIEW_DELAY);
-    });
-    owner.addEventListener("pointerleave", () => stopPreview(owner));
-  }
-
   function closeDialog(id) {
     const dialog = document.getElementById(id);
     if (!dialog) return false;
@@ -770,7 +732,6 @@
 
   function openDetails(card) {
     closeDialog(DETAILS_ID);
-    stopPreview();
 
     const dialog = makeElement("dialog", "ytflix-dialog ytflix-details");
     dialog.id = DETAILS_ID;
@@ -855,7 +816,6 @@
     if (card.metadata) overlay.appendChild(makeElement("p", "ytflix-card__metadata", card.metadata));
     anchor.appendChild(art);
     wrapper.append(anchor, overlay);
-    armPreview(wrapper, card);
     return wrapper;
   }
 
@@ -1105,7 +1065,6 @@
   function showNativeRoute(route) {
     finishStartupSequence(true);
     setLightsDown(false);
-    stopPreview();
     closeDialog(DETAILS_ID);
     closeDialog(MOOD_ID);
     closeDialog(PROFILE_ID);
@@ -1215,12 +1174,10 @@
     window.clearInterval(state.locationTimer);
     window.clearTimeout(state.renderTimer);
     window.clearTimeout(state.navigationTimer);
-    window.clearTimeout(state.previewTimer);
     window.clearTimeout(state.stillWatchingTimer);
     state.locationTimer = null;
     state.renderTimer = null;
     state.navigationTimer = null;
-    state.previewTimer = null;
     state.stillWatchingTimer = null;
   }
 
@@ -1240,7 +1197,6 @@
     state.activeView = "";
     state.activeMood = "";
     setLightsDown(false);
-    stopPreview();
     closeDialog(DETAILS_ID);
     closeDialog(MOOD_ID);
     closeDialog(PROFILE_ID);
@@ -1280,12 +1236,10 @@
     let enabled = true;
     try {
       const settings = await chrome.storage.local.get({
-        autoplayPreviews: true,
         enabled: true,
         myList: []
       });
       enabled = settings.enabled !== false;
-      state.autoplayPreviews = settings.autoplayPreviews !== false;
       state.myList = core.dedupeCards(settings.myList || []);
     } catch (_error) {
       enabled = true;
@@ -1296,10 +1250,6 @@
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== "local") return;
-      if (changes.autoplayPreviews) {
-        state.autoplayPreviews = changes.autoplayPreviews.newValue !== false;
-        if (!state.autoplayPreviews) stopPreview();
-      }
       if (changes.myList) {
         state.myList = core.dedupeCards(changes.myList.newValue || []);
         syncMyListButtons();

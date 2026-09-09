@@ -41,7 +41,7 @@ YTFLIX recuts the live YouTube desktop interface as a cinematic streaming librar
 - YouTube's single-page navigation is observed so YTFLIX rebuilds after route changes.
 - A startup cover holds the page until the YTFLIX shell is ready, avoiding a flash of the original homepage.
 - A YT-to-YTFLIX ribbon ident and bundled cinematic jingle play together once per Chrome session; the interface appears as soon as the visual finishes while the audio resolves.
-- Hover cards expand with playback controls, a playful match score, details, and optional muted YouTube previews.
+- Hover cards expand with playback controls, a playful match score, and more details without leaving the page.
 - Continue Watching uses YouTube’s rendered resume progress, while My List keeps private local picks for later.
 - Tonight’s Mood recuts the current recommendations into funny, cozy, musical, or deep-viewing collections—or chooses for you.
 - The account avatar opens a playful “Who’s watching?” moment, including a Date Night shortcut into the mood picker.
@@ -106,8 +106,8 @@ Bug fixes, selector repairs, accessibility improvements, and properly useless fe
 - Shorts, Studio, uploads, purchases, account management, and unsupported routes stay native.
 - Rail headings are playful presentation labels, not YouTube recommendation metadata.
 - Sponsored cards remain labeled when YouTube exposes them; player ads are not intercepted or skipped.
-- No remote code, analytics, data collection, or third-party services; optional previews use standard muted YouTube embeds.
-- YTFLIX stores its enabled state, preview preference, and My List locally; the startup-ident gate resets when Chrome restarts.
+- No remote code, analytics, data collection, third-party services, or hover-preview embeds.
+- YTFLIX stores its enabled state and My List locally; the startup-ident gate resets when Chrome restarts.
 
 YouTube changes its DOM regularly. If extraction stops working, switch YTFLIX off from the popup and update the selector adapter in `src/content.js`.
 
