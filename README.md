@@ -8,6 +8,11 @@
 
 YTFLIX recuts the live YouTube desktop interface as a cinematic streaming library. It uses the thumbnails, titles, links, player, account state, and actions already rendered by YouTube. It does not call YouTube APIs or replace the video player.
 
+## Demo
+
+https://github.com/user-attachments/assets/ec2c28fb-028b-4a8c-ad27-364254dadd25
+
+
 ## Install from source
 
 You need desktop Google Chrome and Git.
