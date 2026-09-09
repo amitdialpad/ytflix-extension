@@ -11,10 +11,10 @@
   const ROUTE_ATTRIBUTE = "data-ytflix-route";
   const LIGHTS_DOWN_ATTRIBUTE = "data-ytflix-lights-down";
   const STARTUP_ID = "ytflix-startup";
-  const DETAILS_ID = "ytflix-details";
   const MOOD_ID = "ytflix-mood-picker";
   const PROFILE_ID = "ytflix-profile-picker";
   const TOAST_ID = "ytflix-still-watching";
+  const REMOVAL_TOAST_ID = "ytflix-removal-toast";
   const CLAIM_STARTUP_MESSAGE = "ytflix-claim-startup";
   const STARTUP_SOUND_MESSAGE = "ytflix-play-startup-sound";
   const STARTUP_MINIMUM_DURATION = 2100;
@@ -51,6 +51,7 @@
     startupExitTimer: null,
     startupRemoveTimer: null,
     myList: [],
+    hiddenCards: [],
     activeView: "",
     activeMood: "",
     lastCards: [],
@@ -297,7 +298,7 @@
       if (card) cards.push(card);
     }
 
-    return core.dedupeCards(cards).slice(0, 64);
+    return core.filterHiddenCards(core.dedupeCards(cards), state.hiddenCards).slice(0, 64);
   }
 
   function getNativePageTitle(route) {
@@ -659,12 +660,16 @@
   }
 
   function cardKey(card) {
-    return core.videoIdFromUrl(card.href) || card.href;
+    return core.cardKey(card);
   }
 
   function isInMyList(card) {
     const key = cardKey(card);
     return state.myList.some((savedCard) => cardKey(savedCard) === key);
+  }
+
+  function isHidden(card) {
+    return state.hiddenCards.includes(cardKey(card));
   }
 
   function syncMyListButtons() {
@@ -713,6 +718,48 @@
     return button;
   }
 
+  function showRemovalToast(card, savedCard) {
+    document.getElementById(REMOVAL_TOAST_ID)?.remove();
+    const toast = makeElement("aside", "ytflix-removal-toast");
+    toast.id = REMOVAL_TOAST_ID;
+    toast.setAttribute("role", "status");
+    const copy = makeElement("div", "ytflix-removal-toast__copy");
+    copy.append(
+      makeElement("strong", "", "Removed from YTFLIX"),
+      makeElement("span", "", card.title)
+    );
+    const undo = makeElement("button", "ytflix-removal-toast__button", "Undo");
+    undo.type = "button";
+    undo.addEventListener("click", async () => {
+      const key = cardKey(card);
+      state.hiddenCards = state.hiddenCards.filter((hiddenKey) => hiddenKey !== key);
+      state.lastCards = core.dedupeCards([card, ...state.lastCards]);
+      if (savedCard && !isInMyList(savedCard)) {
+        state.myList = core.dedupeCards([savedCard, ...state.myList]);
+      }
+      await chrome.storage.local.set({ hiddenCards: state.hiddenCards, myList: state.myList });
+      toast.remove();
+      state.signature = "";
+      scheduleRender(0);
+    });
+    toast.append(copy, undo);
+    document.body.appendChild(toast);
+    window.setTimeout(() => toast.remove(), 6500);
+  }
+
+  async function hideCard(card) {
+    const key = cardKey(card);
+    if (state.hiddenCards.includes(key)) return;
+    const savedCard = state.myList.find((item) => cardKey(item) === key) || null;
+    state.hiddenCards = [key, ...state.hiddenCards];
+    state.myList = state.myList.filter((item) => cardKey(item) !== key);
+    state.lastCards = state.lastCards.filter((item) => cardKey(item) !== key);
+    await chrome.storage.local.set({ hiddenCards: state.hiddenCards, myList: state.myList });
+    state.signature = "";
+    scheduleRender(0);
+    showRemovalToast(card, savedCard);
+  }
+
   function closeDialog(id) {
     const dialog = document.getElementById(id);
     if (!dialog) return false;
@@ -728,50 +775,6 @@
       if (dialog.open) dialog.close();
       else dialog.remove();
     }, DIALOG_EXIT_DURATION);
-  }
-
-  function openDetails(card) {
-    closeDialog(DETAILS_ID);
-
-    const dialog = makeElement("dialog", "ytflix-dialog ytflix-details");
-    dialog.id = DETAILS_ID;
-    dialog.setAttribute("aria-label", card.title);
-    const panel = makeElement("article", "ytflix-details__panel");
-    const artwork = imageNode(card, "ytflix-details__art");
-    const close = makeElement("button", "ytflix-dialog__close", "×");
-    close.type = "button";
-    close.setAttribute("aria-label", "Close details");
-    close.addEventListener("click", () => dismissDialog(dialog));
-    artwork.appendChild(close);
-
-    const content = makeElement("div", "ytflix-details__content");
-    content.appendChild(makeElement("p", "ytflix-details__match", `${core.matchScore(card)}% your vibe`));
-    content.appendChild(makeElement("h2", "ytflix-details__title", card.title));
-    const meta = [card.channel, card.duration, card.metadata].filter(Boolean).join(" · ");
-    if (meta) content.appendChild(makeElement("p", "ytflix-details__meta", meta));
-    content.appendChild(
-      makeElement("p", "ytflix-details__description", "Settle in—this one is ready in your native YouTube player.")
-    );
-
-    const actions = makeElement("div", "ytflix-details__actions");
-    const play = makeElement("a", "ytflix-button ytflix-button--primary", "▶ Play");
-    play.href = card.href;
-    const listButton = createMyListButton(card, "ytflix-button ytflix-button--secondary");
-    actions.append(play, listButton);
-    content.appendChild(actions);
-    panel.append(artwork, content);
-    dialog.appendChild(panel);
-    dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) dismissDialog(dialog);
-    });
-    dialog.addEventListener("cancel", (event) => {
-      event.preventDefault();
-      dismissDialog(dialog);
-    });
-    dialog.addEventListener("close", () => dialog.remove(), { once: true });
-    document.body.appendChild(dialog);
-    dialog.showModal();
-    close.focus();
   }
 
   function createCard(card, rank) {
@@ -795,16 +798,16 @@
     const overlay = makeElement("div", "ytflix-card__overlay");
     const actions = makeElement("div", "ytflix-card__actions");
     const listButton = createMyListButton(card);
-    const info = makeElement("button", "ytflix-card-action", "i");
-    info.type = "button";
-    info.setAttribute("aria-label", `More information about ${card.title}`);
-    info.title = "More info";
-    info.addEventListener("click", (event) => {
+    const remove = makeElement("button", "ytflix-card-action ytflix-card-action--remove", "×");
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Remove ${card.title} from YTFLIX`);
+    remove.title = "Not for me";
+    remove.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      openDetails(card);
+      void hideCard(card);
     });
-    actions.append(listButton, info);
+    actions.append(listButton, remove);
     overlay.appendChild(actions);
     overlay.appendChild(makeElement("p", "ytflix-card__match", `${core.matchScore(card)}% your vibe`));
     overlay.appendChild(makeElement("h3", "ytflix-card__title", card.title));
@@ -833,10 +836,7 @@
     const play = makeElement("a", "ytflix-button ytflix-button--primary", "▶ Play");
     play.href = card.href;
     const listButton = createMyListButton(card, "ytflix-button ytflix-button--secondary");
-    const info = makeElement("button", "ytflix-button ytflix-button--secondary", "ⓘ More info");
-    info.type = "button";
-    info.addEventListener("click", () => openDetails(card));
-    actions.append(play, listButton, info);
+    actions.append(play, listButton);
     content.appendChild(actions);
     hero.append(art, content);
     return hero;
@@ -1061,10 +1061,10 @@
   function showNativeRoute(route) {
     finishStartupSequence(true);
     setLightsDown(false);
-    closeDialog(DETAILS_ID);
     closeDialog(MOOD_ID);
     closeDialog(PROFILE_ID);
     document.getElementById(TOAST_ID)?.remove();
+    document.getElementById(REMOVAL_TOAST_ID)?.remove();
     document.getElementById(ROOT_ID)?.remove();
     document.getElementById(WATCH_EXTRAS_ID)?.remove();
     document.documentElement.removeAttribute(ACTIVE_ATTRIBUTE);
@@ -1140,7 +1140,11 @@
 
   function mutationBelongsToYTFlix(mutation) {
     const target = mutation.target.nodeType === Node.ELEMENT_NODE ? mutation.target : mutation.target.parentElement;
-    return Boolean(target?.closest?.(`#${ROOT_ID}, #${WATCH_EXTRAS_ID}, #${DETAILS_ID}, #${MOOD_ID}, #${PROFILE_ID}, #${TOAST_ID}`));
+    return Boolean(
+      target?.closest?.(
+        `#${ROOT_ID}, #${WATCH_EXTRAS_ID}, #${MOOD_ID}, #${PROFILE_ID}, #${TOAST_ID}, #${REMOVAL_TOAST_ID}`
+      )
+    );
   }
 
   function startObservers() {
@@ -1193,13 +1197,13 @@
     state.activeView = "";
     state.activeMood = "";
     setLightsDown(false);
-    closeDialog(DETAILS_ID);
     closeDialog(MOOD_ID);
     closeDialog(PROFILE_ID);
     window.clearTimeout(state.stillWatchingTimer);
     state.stillWatchingTimer = null;
     state.stillWatchingHref = "";
     document.getElementById(TOAST_ID)?.remove();
+    document.getElementById(REMOVAL_TOAST_ID)?.remove();
     window.clearTimeout(state.navigationTimer);
     state.navigationTimer = window.setTimeout(() => {
       state.isNavigating = false;
@@ -1233,10 +1237,14 @@
     try {
       const settings = await chrome.storage.local.get({
         enabled: true,
+        hiddenCards: [],
         myList: []
       });
       enabled = settings.enabled !== false;
-      state.myList = core.dedupeCards(settings.myList || []);
+      state.hiddenCards = Array.from(
+        new Set((settings.hiddenCards || []).map((key) => String(key)).filter(Boolean))
+      );
+      state.myList = core.dedupeCards(settings.myList || []).filter((card) => !isHidden(card));
     } catch (_error) {
       enabled = true;
     }
@@ -1247,12 +1255,21 @@
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== "local") return;
       if (changes.myList) {
-        state.myList = core.dedupeCards(changes.myList.newValue || []);
+        state.myList = core.dedupeCards(changes.myList.newValue || []).filter((card) => !isHidden(card));
         syncMyListButtons();
         if (state.activeView === "my-list") {
           state.signature = "";
           scheduleRender(0);
         }
+      }
+      if (changes.hiddenCards) {
+        state.hiddenCards = Array.from(
+          new Set((changes.hiddenCards.newValue || []).map((key) => String(key)).filter(Boolean))
+        );
+        state.myList = state.myList.filter((card) => !isHidden(card));
+        state.lastCards = state.lastCards.filter((card) => !isHidden(card));
+        state.signature = "";
+        scheduleRender(0);
       }
       if (!changes.enabled) return;
       const nextEnabled = changes.enabled.newValue !== false;
@@ -1267,7 +1284,6 @@
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       if (
-        document.getElementById(DETAILS_ID) ||
         document.getElementById(MOOD_ID) ||
         document.getElementById(PROFILE_ID)
       ) return;

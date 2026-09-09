@@ -177,10 +177,10 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] ytd-page-manager {
 
 #ytflix-root,
 #ytflix-watch-extras,
-#ytflix-details,
 #ytflix-mood-picker,
 #ytflix-profile-picker,
-#ytflix-still-watching {
+#ytflix-still-watching,
+#ytflix-removal-toast {
   box-sizing: border-box;
   color: var(--ytflix-white);
   font-family: Arial, Helvetica, sans-serif;
@@ -193,16 +193,14 @@ html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] ytd-page-manager {
 #ytflix-watch-extras *,
 #ytflix-watch-extras *::before,
 #ytflix-watch-extras *::after,
-#ytflix-details *,
-#ytflix-details *::before,
-#ytflix-details *::after,
 #ytflix-mood-picker *,
 #ytflix-mood-picker *::before,
 #ytflix-mood-picker *::after,
 #ytflix-profile-picker *,
 #ytflix-profile-picker *::before,
 #ytflix-profile-picker *::after,
-#ytflix-still-watching * {
+#ytflix-still-watching *,
+#ytflix-removal-toast * {
   box-sizing: border-box;
 }
 
@@ -516,8 +514,7 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   transition: background 150ms ease;
 }
 
-.ytflix-hero__actions,
-.ytflix-details__actions {
+.ytflix-hero__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -734,6 +731,12 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   color: #46d369 !important;
 }
 
+.ytflix-card-action--remove:hover,
+.ytflix-card-action--remove:focus-visible {
+  border-color: #ff5b62;
+  background: rgba(122, 8, 14, 0.94);
+}
+
 .ytflix-card__match {
   margin: 0 0 5px;
   color: #46d369;
@@ -829,20 +832,17 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   animation: ytflix-dialog-out 180ms var(--ytflix-ease-out) forwards;
 }
 
-.ytflix-dialog.is-closing .ytflix-details__panel,
 .ytflix-dialog.is-closing .ytflix-mood-picker__panel,
 .ytflix-dialog.is-closing .ytflix-profile-picker__panel {
   animation: ytflix-dialog-panel-out 180ms var(--ytflix-ease-out) forwards;
 }
 
-.ytflix-details[open],
 .ytflix-mood-picker[open],
 .ytflix-profile-picker[open] {
   display: grid;
   place-items: center;
 }
 
-.ytflix-details__panel,
 .ytflix-mood-picker__panel,
 .ytflix-profile-picker__panel {
   position: relative;
@@ -854,26 +854,6 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.72);
   transform: translateY(3%) scale(0.96);
   animation: ytflix-dialog-panel-in 300ms var(--ytflix-ease-out) forwards;
-}
-
-.ytflix-details__art {
-  position: relative;
-  min-height: 330px;
-  background: #242424;
-}
-
-.ytflix-details__art::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, #181818 0%, transparent 64%);
-  content: "";
-}
-
-.ytflix-details__art img {
-  width: 100%;
-  height: 100%;
-  min-height: 330px;
-  object-fit: cover;
 }
 
 .ytflix-dialog__close {
@@ -900,21 +880,6 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   outline-offset: 2px;
 }
 
-.ytflix-details__content {
-  position: relative;
-  z-index: 2;
-  margin-top: -95px;
-  padding: 0 38px 38px;
-}
-
-.ytflix-details__match {
-  margin: 0 0 8px;
-  color: #46d369;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.ytflix-details__title,
 .ytflix-mood-picker__title {
   margin: 0;
   font-size: clamp(32px, 5vw, 58px);
@@ -922,17 +887,11 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   line-height: 1;
 }
 
-.ytflix-details__meta,
-.ytflix-details__description,
 .ytflix-mood-picker__copy {
   max-width: 650px;
   color: #d0d0d0;
   font-size: 15px;
   line-height: 1.5;
-}
-
-.ytflix-details__actions {
-  margin-top: 24px;
 }
 
 .ytflix-mood-picker__panel {
@@ -1082,7 +1041,8 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   line-height: 1.4;
 }
 
-.ytflix-still-watching {
+.ytflix-still-watching,
+.ytflix-removal-toast {
   position: fixed;
   z-index: 2147483645;
   right: 28px;
@@ -1102,17 +1062,21 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 }
 
 .ytflix-still-watching__copy strong,
-.ytflix-still-watching__copy span {
+.ytflix-still-watching__copy span,
+.ytflix-removal-toast__copy strong,
+.ytflix-removal-toast__copy span {
   display: block;
 }
 
-.ytflix-still-watching__copy span {
+.ytflix-still-watching__copy span,
+.ytflix-removal-toast__copy span {
   margin-top: 3px;
   color: var(--ytflix-muted);
   font-size: 12px;
 }
 
-.ytflix-still-watching__button {
+.ytflix-still-watching__button,
+.ytflix-removal-toast__button {
   border: 0;
   border-radius: 4px;
   background: white;
@@ -1524,16 +1488,15 @@ html[data-ytflix-lights-down] #player-container-inner {
   }
 
   .ytflix-dialog,
-  .ytflix-details__panel,
   .ytflix-mood-picker__panel,
   .ytflix-profile-picker__panel,
-  .ytflix-still-watching {
+  .ytflix-still-watching,
+  .ytflix-removal-toast {
     transform: none;
     animation: ytflix-startup-reduced-in 200ms var(--ytflix-ease-out) both;
   }
 
   .ytflix-dialog.is-closing,
-  .ytflix-dialog.is-closing .ytflix-details__panel,
   .ytflix-dialog.is-closing .ytflix-mood-picker__panel,
   .ytflix-dialog.is-closing .ytflix-profile-picker__panel {
     transform: none;

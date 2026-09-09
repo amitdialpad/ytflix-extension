@@ -79,6 +79,16 @@
     return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "";
   }
 
+  function cardKey(card) {
+    const href = String(card?.href || "");
+    return videoIdFromUrl(href) || href;
+  }
+
+  function filterHiddenCards(cards, hiddenKeys) {
+    const hidden = new Set((hiddenKeys || []).map((key) => String(key)));
+    return (cards || []).filter((card) => !hidden.has(cardKey(card)));
+  }
+
   function normalizeCard(rawCard) {
     if (!rawCard || typeof rawCard !== "object") return null;
 
@@ -177,9 +187,11 @@
 
   const api = {
     buildSignature,
+    cardKey,
     classifyRoute,
     dedupeCards,
     eligibleForRail,
+    filterHiddenCards,
     filterCardsByMood,
     groupCards,
     matchScore,

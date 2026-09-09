@@ -125,3 +125,14 @@ test("filters cards by mood and falls back when no titles match", () => {
   assert.deepEqual(core.filterCardsByMood(cards, "music").map((card) => card.title), ["Live acoustic session"]);
   assert.deepEqual(core.filterCardsByMood(cards, "funny"), cards);
 });
+
+test("keeps removed videos hidden across URL variants", () => {
+  const cards = [
+    { title: "Remove me", href: "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=30s" },
+    { title: "Keep me", href: "https://www.youtube.com/watch?v=abcdefghijk" }
+  ];
+  assert.deepEqual(
+    core.filterHiddenCards(cards, ["dQw4w9WgXcQ"]).map((card) => card.title),
+    ["Keep me"]
+  );
+});
