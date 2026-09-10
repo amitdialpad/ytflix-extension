@@ -230,6 +230,10 @@
     return lists;
   }
 
+  function hasMultipleSaveLists(moodLists) {
+    return Array.isArray(moodLists) && moodLists.length > 0;
+  }
+
   function buildTopicSignature(topicRails) {
     return normalizeTopicRails(topicRails)
       .map((rail) => `${rail.title}::${rail.cards.slice(0, 16).map((card) => cardKey(card)).join("|")}`)
@@ -246,6 +250,7 @@
     filterHiddenCards,
     filterCardsByMood,
     groupCards,
+    hasMultipleSaveLists,
     matchScore,
     normalizeCard,
     normalizeMoodLists,

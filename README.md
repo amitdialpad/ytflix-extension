@@ -6,7 +6,7 @@
 >
 > Want to contribute to this stupid project by fixing bugs or adding another feature? Feel free to raise a PR. Let's make it properly useless.
 
-## [⬇ Download the latest YTFLIX (v0.3.0)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
+## [⬇ Download the latest YTFLIX (v0.3.1)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
 
 No coding or Git required. This link always downloads the newest version from `main`, including the startup ident, jingle, and extension icon.
 
@@ -42,9 +42,10 @@ YTFLIX recuts the live YouTube desktop interface as a cinematic streaming librar
 - YouTube's single-page navigation is observed so YTFLIX rebuilds after route changes.
 - A startup cover holds the page until the YTFLIX shell is ready, avoiding a flash of the original homepage.
 - A YT-to-YTFLIX ribbon ident and bundled cinematic jingle play together once per Chrome session; the interface appears as soon as the visual finishes while the audio resolves.
-- Hover cards reveal My List and “Not for me” controls alongside a playful match score.
+- Hover cards reveal save and “Not for me” controls alongside a playful match score.
 - My List is the first homepage rail, followed by any personal mood lists, before Continue Watching.
-- The My Lists page lets you create named moods such as Cozy Night or Sunday Morning and sort saved videos into them.
+- The My Lists page lets you create named moods such as Cozy Night or Sunday Morning and sort videos into them.
+- When only My List exists, saving is instant. As soon as another list exists, saving opens a chooser so nothing lands in an arbitrary list.
 - Continue Watching uses YouTube’s rendered resume progress, while My List and mood lists keep private local picks for later.
 - Tonight’s Mood recuts the current recommendations into funny, cozy, musical, or deep-viewing collections—or chooses for you.
 - The account avatar opens a playful “Who’s watching?” moment, including a Date Night shortcut into the mood picker.

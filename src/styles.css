@@ -1049,6 +1049,11 @@ html[data-ytflix-mode="watch"] .ytflix-header {
   outline: none;
 }
 
+.ytflix-list-choice:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .ytflix-list-choice.is-saved {
   border-color: rgba(70, 211, 105, 0.52);
 }
@@ -1102,6 +1107,11 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 
 .ytflix-list-dialog__input:focus {
   border-color: white;
+}
+
+.ytflix-list-dialog__done {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .ytflix-profile-picker__panel {

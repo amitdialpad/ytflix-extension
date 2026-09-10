@@ -140,6 +140,11 @@ test("normalizes named mood lists and their saved videos", () => {
   assert.deepEqual(lists[0].cards.map((card) => card.title), ["First save"]);
 });
 
+test("requires a save destination choice once a second list exists", () => {
+  assert.equal(core.hasMultipleSaveLists([]), false);
+  assert.equal(core.hasMultipleSaveLists([{ id: "cozy", name: "Cozy", cards: [] }]), true);
+});
+
 test("extracts YouTube video IDs from supported URL shapes", () => {
   const videoId = "dQw4w9WgXcQ";
   assert.equal(core.videoIdFromUrl(`/watch?v=${videoId}&pp=tracking`), videoId);
