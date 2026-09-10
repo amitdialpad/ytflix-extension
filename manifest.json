@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YTFLIX",
   "short_name": "YTFLIX",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minimum_chrome_version": "109",
   "description": "Useless project #4984: YouTube recut as a cinematic streaming library.",
   "permissions": [

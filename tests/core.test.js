@@ -119,6 +119,27 @@ test("builds a topic signature from labels and video identities", () => {
   );
 });
 
+test("normalizes named mood lists and their saved videos", () => {
+  const lists = core.normalizeMoodLists([
+    {
+      id: "cozy",
+      name: "  Cozy   night  ",
+      cards: [
+        { title: "First save", href: "/watch?v=abcdefghijk" },
+        { title: "Same video", href: "/watch?v=abcdefghijk&t=45s" }
+      ]
+    },
+    { id: "cozy", name: "Date night", cards: [] },
+    { id: "empty-name", name: "   ", cards: [] }
+  ]);
+
+  assert.deepEqual(lists.map(({ id, name }) => ({ id, name })), [
+    { id: "cozy", name: "Cozy night" },
+    { id: "cozy-2", name: "Date night" }
+  ]);
+  assert.deepEqual(lists[0].cards.map((card) => card.title), ["First save"]);
+});
+
 test("extracts YouTube video IDs from supported URL shapes", () => {
   const videoId = "dQw4w9WgXcQ";
   assert.equal(core.videoIdFromUrl(`/watch?v=${videoId}&pp=tracking`), videoId);

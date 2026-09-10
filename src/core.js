@@ -211,6 +211,25 @@
     return rails;
   }
 
+  function normalizeMoodLists(rawLists) {
+    const lists = [];
+    const seenIds = new Set();
+
+    for (const [index, rawList] of (rawLists || []).entries()) {
+      if (!rawList || typeof rawList !== "object") continue;
+      const name = String(rawList.name || "").replace(/\s+/g, " ").trim().slice(0, 40);
+      if (!name) continue;
+
+      const requestedId = String(rawList.id || "").trim();
+      let id = requestedId || `mood-${index + 1}`;
+      while (seenIds.has(id)) id = `${id}-${index + 1}`;
+      seenIds.add(id);
+      lists.push({ id, name, cards: dedupeCards(rawList.cards || []) });
+    }
+
+    return lists;
+  }
+
   function buildTopicSignature(topicRails) {
     return normalizeTopicRails(topicRails)
       .map((rail) => `${rail.title}::${rail.cards.slice(0, 16).map((card) => cardKey(card)).join("|")}`)
@@ -229,6 +248,7 @@
     groupCards,
     matchScore,
     normalizeCard,
+    normalizeMoodLists,
     normalizeTopicRails,
     routeLabel,
     thumbnailFromUrl,

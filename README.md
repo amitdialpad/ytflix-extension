@@ -6,7 +6,7 @@
 >
 > Want to contribute to this stupid project by fixing bugs or adding another feature? Feel free to raise a PR. Let's make it properly useless.
 
-## [⬇ Download the latest YTFLIX (v0.2.0)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
+## [⬇ Download the latest YTFLIX (v0.3.0)](https://github.com/amitdialpad/ytflix-extension/archive/refs/heads/main.zip)
 
 No coding or Git required. This link always downloads the newest version from `main`, including the startup ident, jingle, and extension icon.
 
@@ -38,12 +38,14 @@ YTFLIX recuts the live YouTube desktop interface as a cinematic streaming librar
 - Watch Again turns YouTube history into a browsable grid.
 - My Library separates recent viewing from playlists and saved collections.
 - Search, channel, and playlist pages become cinematic poster grids.
-- Watch pages keep YouTube's native player and actions in a darker theater layout.
+- Watch pages keep YouTube's native player and actions in a darker theater layout, with a quick way to save the video beneath the player.
 - YouTube's single-page navigation is observed so YTFLIX rebuilds after route changes.
 - A startup cover holds the page until the YTFLIX shell is ready, avoiding a flash of the original homepage.
 - A YT-to-YTFLIX ribbon ident and bundled cinematic jingle play together once per Chrome session; the interface appears as soon as the visual finishes while the audio resolves.
 - Hover cards reveal My List and “Not for me” controls alongside a playful match score.
-- Continue Watching uses YouTube’s rendered resume progress, while My List keeps private local picks for later.
+- My List is the first homepage rail, followed by any personal mood lists, before Continue Watching.
+- The My Lists page lets you create named moods such as Cozy Night or Sunday Morning and sort saved videos into them.
+- Continue Watching uses YouTube’s rendered resume progress, while My List and mood lists keep private local picks for later.
 - Tonight’s Mood recuts the current recommendations into funny, cozy, musical, or deep-viewing collections—or chooses for you.
 - The account avatar opens a playful “Who’s watching?” moment, including a Date Night shortcut into the mood picker.
 - Lights Down turns watch pages into a distraction-free cinema view, with a rare “Still watching?” wink for heroic sessions.
@@ -108,7 +110,7 @@ Bug fixes, selector repairs, accessibility improvements, and properly useless fe
 - Rail headings are playful presentation labels, not YouTube recommendation metadata.
 - Sponsored cards remain labeled when YouTube exposes them; player ads are not intercepted or skipped.
 - No remote code, analytics, data collection, third-party services, or hover-preview embeds.
-- YTFLIX stores its enabled state, My List, and removed-video preferences locally; the startup-ident gate resets when Chrome restarts.
+- YTFLIX stores its enabled state, My List, mood lists, and removed-video preferences locally; the startup-ident gate resets when Chrome restarts.
 
 YouTube changes its DOM regularly. If extraction stops working, switch YTFLIX off from the popup and update the selector adapter in `src/content.js`.
 
