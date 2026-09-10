@@ -33,6 +33,7 @@ YTFLIX recuts the live YouTube desktop interface as a cinematic streaming librar
 ## What changes
 
 - Home becomes a featured hero with horizontal streaming-style rails.
+- YouTube's Explore more topics shelf becomes a set of full, labeled rails, gathered without opening each topic yourself.
 - My Shows presents subscriptions as a dedicated poster library.
 - Watch Again turns YouTube history into a browsable grid.
 - My Library separates recent viewing from playlists and saved collections.

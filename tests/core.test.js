@@ -87,6 +87,38 @@ test("builds a stable signature from the visible content", () => {
   );
 });
 
+test("normalizes topic rails and merges duplicate topic labels", () => {
+  const rails = core.normalizeTopicRails([
+    {
+      title: "  Live   music ",
+      cards: [{ title: "First set", href: "/watch?v=abcdefghijk" }]
+    },
+    {
+      title: "live music",
+      cards: [
+        { title: "First set again", href: "/watch?v=abcdefghijk&t=90s" },
+        { title: "Second set", href: "/watch?v=lmnopqrstuv" }
+      ]
+    },
+    { title: "No videos", cards: [] }
+  ]);
+
+  assert.equal(rails.length, 1);
+  assert.equal(rails[0].title, "Live music");
+  assert.deepEqual(rails[0].cards.map((card) => card.title), ["First set", "Second set"]);
+});
+
+test("builds a topic signature from labels and video identities", () => {
+  const rails = [{
+    title: "Design documentaries",
+    cards: [{ title: "Helvetica", href: "/watch?v=abcdefghijk" }]
+  }];
+  assert.equal(
+    core.buildTopicSignature(rails),
+    "Design documentaries::abcdefghijk"
+  );
+});
+
 test("extracts YouTube video IDs from supported URL shapes", () => {
   const videoId = "dQw4w9WgXcQ";
   assert.equal(core.videoIdFromUrl(`/watch?v=${videoId}&pp=tracking`), videoId);

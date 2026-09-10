@@ -22,6 +22,12 @@
   const EMPTY_STATE_TIMEOUT = 6500;
   const DIALOG_EXIT_DURATION = 180;
   const STILL_WATCHING_DELAY = 45 * 60 * 1000;
+  const TOPIC_SHELF_SELECTOR = "ytd-chips-shelf-with-video-shelf-renderer";
+  const TOPIC_TAB_SELECTOR = "button[role='tab']";
+  const TOPIC_CARD_LIMIT = 12;
+  const TOPIC_WAIT_TIMEOUT = 2600;
+  const TOPIC_DISCOVERY_ATTEMPTS = 4;
+  const TOPIC_DISCOVERY_DELAY = 850;
   const CARD_SELECTORS = [
     "yt-lockup-view-model",
     "ytd-rich-item-renderer",
@@ -57,7 +63,12 @@
     lastCards: [],
     lightsDown: false,
     stillWatchingTimer: null,
-    stillWatchingHref: ""
+    stillWatchingHref: "",
+    topicRails: [],
+    topicCollectionHref: "",
+    topicCollectionPromise: null,
+    topicCollectionComplete: false,
+    topicCollectionToken: 0
   };
 
   document.documentElement.dataset.ytflixPending = "true";
@@ -294,11 +305,253 @@
     const root = nativeScope();
 
     for (const cardNode of root.querySelectorAll(CARD_SELECTORS.join(","))) {
+      if (cardNode.closest(TOPIC_SHELF_SELECTOR)) continue;
       const card = extractCard(cardNode);
-      if (card) cards.push(card);
+      if (!card) continue;
+      cards.push(card);
     }
 
     return core.filterHiddenCards(core.dedupeCards(cards), state.hiddenCards).slice(0, 64);
+  }
+
+  function findTopicShelf() {
+    const shelves = Array.from(nativeScope().querySelectorAll(TOPIC_SHELF_SELECTOR));
+    const namedShelf = shelves.find((shelf) => {
+      const heading = textFrom(shelf, ["h2", "yt-shelf-header-layout"]);
+      return heading.toLocaleLowerCase() === "explore more topics";
+    });
+    return namedShelf || shelves.find((shelf) => (
+      shelf.querySelectorAll(TOPIC_TAB_SELECTOR).length > 1 &&
+      shelf.querySelector(CARD_SELECTORS.join(","))
+    )) || null;
+  }
+
+  function topicTabLabel(button) {
+    return String(button?.textContent || button?.getAttribute("aria-label") || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function topicTabs(shelf) {
+    const seen = new Set();
+    return Array.from(shelf?.querySelectorAll(TOPIC_TAB_SELECTOR) || []).filter((button) => {
+      const label = topicTabLabel(button);
+      const key = label.toLocaleLowerCase();
+      if (!label || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function selectedTopicLabel(shelf) {
+    const selected = topicTabs(shelf).find((button) => button.getAttribute("aria-selected") === "true");
+    return topicTabLabel(selected);
+  }
+
+  function collectTopicCards(shelf) {
+    const cards = [];
+    for (const cardNode of shelf?.querySelectorAll(CARD_SELECTORS.join(",")) || []) {
+      const card = extractCard(cardNode);
+      if (card) cards.push(card);
+    }
+    return core.filterHiddenCards(core.dedupeCards(cards), state.hiddenCards).slice(0, TOPIC_CARD_LIMIT);
+  }
+
+  function visibleTopicButton(shelf, label) {
+    return Array.from(shelf?.querySelectorAll("button") || []).find((button) => (
+      String(button.textContent || "").replace(/\s+/g, " ").trim() === label &&
+      !button.disabled &&
+      button.getClientRects().length > 0
+    )) || null;
+  }
+
+  function waitForTopicCondition(predicate, token, timeout = TOPIC_WAIT_TIMEOUT) {
+    return new Promise((resolve) => {
+      const startedAt = performance.now();
+      const check = () => {
+        if (token !== state.topicCollectionToken || location.href !== state.topicCollectionHref) {
+          resolve(false);
+          return;
+        }
+
+        let passed = false;
+        try {
+          passed = Boolean(predicate());
+        } catch (_error) {
+          passed = false;
+        }
+
+        if (passed) {
+          resolve(true);
+          return;
+        }
+        if (performance.now() - startedAt >= timeout) {
+          resolve(false);
+          return;
+        }
+        window.setTimeout(check, 70);
+      };
+      check();
+    });
+  }
+
+  function waitForTopicDelay(token, delay) {
+    return new Promise((resolve) => {
+      window.setTimeout(() => {
+        resolve(
+          token === state.topicCollectionToken &&
+          location.href === state.topicCollectionHref
+        );
+      }, delay);
+    });
+  }
+
+  async function discoverTopicShelf(token) {
+    let shelf = findTopicShelf();
+    for (let attempt = 0; !shelf && attempt < TOPIC_DISCOVERY_ATTEMPTS; attempt += 1) {
+      if (token !== state.topicCollectionToken || location.href !== state.topicCollectionHref) {
+        return null;
+      }
+
+      // The topic shelf sits below YouTube's initially rendered Home feed. YTFLIX
+      // owns the visible scroll surface, so advancing the hidden native page can
+      // trigger its lazy loader without moving the interface the viewer is using.
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      if (!await waitForTopicDelay(token, TOPIC_DISCOVERY_DELAY)) return null;
+      shelf = findTopicShelf();
+    }
+    return shelf;
+  }
+
+  async function selectTopic(label, token) {
+    const shelf = findTopicShelf();
+    if (!shelf) return null;
+    if (selectedTopicLabel(shelf) === label) {
+      if (collectTopicCards(shelf).length) return shelf;
+      const loaded = await waitForTopicCondition(() => {
+        const currentShelf = findTopicShelf();
+        return Boolean(currentShelf && collectTopicCards(currentShelf).length);
+      }, token);
+      return loaded ? findTopicShelf() : null;
+    }
+
+    const previousSignature = core.buildSignature("topic", collectTopicCards(shelf));
+    const button = topicTabs(shelf).find((candidate) => topicTabLabel(candidate) === label);
+    if (!button) return null;
+    button.click();
+
+    const updated = await waitForTopicCondition(() => {
+      const currentShelf = findTopicShelf();
+      if (!currentShelf || selectedTopicLabel(currentShelf) !== label) return false;
+      const cards = collectTopicCards(currentShelf);
+      return cards.length > 0 && core.buildSignature("topic", cards) !== previousSignature;
+    }, token);
+
+    return updated ? findTopicShelf() : null;
+  }
+
+  async function expandTopic(shelf, token) {
+    const showMore = visibleTopicButton(shelf, "Show more");
+    if (!showMore) return shelf;
+
+    const cardCount = collectTopicCards(shelf).length;
+    showMore.click();
+    await waitForTopicCondition(() => {
+      const currentShelf = findTopicShelf();
+      return Boolean(
+        currentShelf &&
+        (collectTopicCards(currentShelf).length > cardCount || visibleTopicButton(currentShelf, "Show less"))
+      );
+    }, token, 1800);
+    return findTopicShelf() || shelf;
+  }
+
+  async function collapseTopic(shelf, token) {
+    const showLess = visibleTopicButton(shelf, "Show less");
+    if (!showLess) return;
+    showLess.click();
+    await waitForTopicCondition(() => {
+      const currentShelf = findTopicShelf();
+      return Boolean(currentShelf && !visibleTopicButton(currentShelf, "Show less"));
+    }, token, 1200);
+  }
+
+  function publishTopicRail(title, cards) {
+    state.topicRails = core.normalizeTopicRails([
+      ...state.topicRails.filter((rail) => rail.title !== title),
+      { title, cards }
+    ]);
+    state.signature = "";
+    scheduleRender(0);
+  }
+
+  async function collectTopicRails(token) {
+    let shelf = findTopicShelf();
+    if (!shelf) return;
+
+    const labels = topicTabs(shelf).map(topicTabLabel);
+    const originalLabel = selectedTopicLabel(shelf) || labels[0] || "";
+    const originalExpanded = Boolean(visibleTopicButton(shelf, "Show less"));
+
+    try {
+      for (const label of labels) {
+        if (token !== state.topicCollectionToken || location.href !== state.topicCollectionHref) return;
+        shelf = await selectTopic(label, token);
+        if (!shelf) continue;
+        shelf = await expandTopic(shelf, token);
+        const cards = collectTopicCards(shelf);
+        if (cards.length) publishTopicRail(label, cards);
+        await collapseTopic(shelf, token);
+      }
+    } finally {
+      if (token !== state.topicCollectionToken || location.href !== state.topicCollectionHref) return;
+      if (originalLabel) {
+        shelf = await selectTopic(originalLabel, token);
+        if (shelf && originalExpanded) await expandTopic(shelf, token);
+      }
+    }
+  }
+
+  async function discoverAndCollectTopicRails(token, href) {
+    const nativeScrollTop = window.scrollY;
+    try {
+      const shelf = await discoverTopicShelf(token);
+      if (!shelf) return;
+      await collectTopicRails(token);
+    } finally {
+      if (location.href === href) window.scrollTo(0, nativeScrollTop);
+    }
+  }
+
+  function resetTopicCollection() {
+    state.topicCollectionToken += 1;
+    state.topicRails = [];
+    state.topicCollectionHref = "";
+    state.topicCollectionPromise = null;
+    state.topicCollectionComplete = false;
+  }
+
+  function maybeCollectTopicRails(route) {
+    if (route !== "home") {
+      if (state.topicCollectionHref || state.topicCollectionPromise || state.topicRails.length) {
+        resetTopicCollection();
+      }
+      return;
+    }
+    if (state.topicCollectionHref && state.topicCollectionHref !== location.href) resetTopicCollection();
+    if (state.topicCollectionPromise || state.topicCollectionComplete) return;
+
+    state.topicCollectionHref = location.href;
+    const token = ++state.topicCollectionToken;
+    const collection = discoverAndCollectTopicRails(token, location.href);
+    state.topicCollectionPromise = collection;
+    void collection
+      .catch(() => {})
+      .finally(() => {
+        if (token !== state.topicCollectionToken) return;
+        state.topicCollectionPromise = null;
+        state.topicCollectionComplete = true;
+      });
   }
 
   function getNativePageTitle(route) {
@@ -844,7 +1097,7 @@
 
   function railNames(route, pageTitle) {
     if (route === "home") {
-      return ["Trending Now", "Because You Watched Everything", "Fresh on YouTube"];
+      return ["Trending Now", "More for You", "Fresh on YouTube"];
     }
     if (location.pathname.includes("subscriptions")) {
       return ["Fresh From Your Subscriptions", "Catch Up Tonight", "More From Your Channels"];
@@ -855,10 +1108,10 @@
     return [pageTitle, "Keep Watching", "More For You"];
   }
 
-  function createRail(title, cards, ranked) {
+  function createRail(title, cards, ranked, headingTag = "h2") {
     const section = makeElement("section", "ytflix-rail-section");
     const headingRow = makeElement("div", "ytflix-rail-section__heading");
-    headingRow.appendChild(makeElement("h2", "ytflix-rail-section__title", title));
+    headingRow.appendChild(makeElement(headingTag, "ytflix-rail-section__title", title));
     const controls = makeElement("div", "ytflix-rail-controls");
     const previous = makeElement("button", "ytflix-rail-control", "‹");
     const next = makeElement("button", "ytflix-rail-control", "›");
@@ -875,6 +1128,27 @@
     next.addEventListener("click", () => viewport.scrollBy({ left: viewport.clientWidth * 0.86, behavior: "smooth" }));
 
     section.append(headingRow, viewport);
+    return section;
+  }
+
+  function createTopicCollection() {
+    const visibleRails = state.topicRails
+      .map((rail) => ({
+        title: rail.title,
+        cards: core.filterHiddenCards(rail.cards, state.hiddenCards)
+      }))
+      .filter((rail) => rail.cards.length);
+    if (!visibleRails.length) return null;
+
+    const section = makeElement("section", "ytflix-topic-collection");
+    section.setAttribute("aria-labelledby", "ytflix-topic-collection-title");
+    const heading = makeElement("div", "ytflix-topic-collection__heading");
+    heading.appendChild(makeElement("p", "ytflix-eyebrow", "Picked from your YouTube Home"));
+    const title = makeElement("h2", "ytflix-topic-collection__title", "Explore more topics");
+    title.id = "ytflix-topic-collection-title";
+    heading.appendChild(title);
+    section.appendChild(heading);
+    visibleRails.forEach((rail) => section.appendChild(createRail(rail.title, rail.cards, false, "h3")));
     return section;
   }
 
@@ -1019,8 +1293,10 @@
       const continueWatching = cards.filter((card) => card.progress > 0 && card.progress < 98);
       if (continueWatching.length) main.appendChild(createRail("Continue Watching", continueWatching, false));
       main.appendChild(createRail("Top 10 Tonight", cards.slice(0, 10), true));
-      if (cards.length > 10) main.appendChild(createRail("Because You Watched Everything", cards.slice(10, 22), false));
+      if (cards.length > 10) main.appendChild(createRail("More for You", cards.slice(10, 22), false));
       if (cards.length > 22) main.appendChild(createRail("Fresh on YouTube", cards.slice(22, 34), false));
+      const topics = createTopicCollection();
+      if (topics) main.appendChild(topics);
     } else {
       main.appendChild(createHero(cards[0], pageTitle));
       const groups = core.groupCards(cards, 8);
@@ -1126,6 +1402,7 @@
     }
     applyPageMode(route);
     syncHeaderAvatar();
+    maybeCollectTopicRails(route);
 
     if (!cards.length) {
       if (route === "watch") {
@@ -1155,7 +1432,10 @@
     state.emptyHref = "";
     state.emptySince = 0;
     state.fallbackHref = "";
-    const signature = core.buildSignature(`${route}:${location.pathname}${location.search}`, cards);
+    const signature = [
+      core.buildSignature(`${route}:${location.pathname}${location.search}`, cards),
+      core.buildTopicSignature(state.topicRails)
+    ].join("::topics::");
     if (signature === state.signature && document.getElementById(ROOT_ID)) return;
     state.signature = signature;
 
@@ -1191,6 +1471,7 @@
     state.locationTimer = window.setInterval(() => {
       if (location.href === state.lastHref) return;
       state.lastHref = location.href;
+      resetTopicCollection();
       state.signature = "";
       scheduleRender(50);
     }, 350);
@@ -1217,6 +1498,7 @@
     state.navigationTimer = null;
     if (location.href !== state.lastHref) {
       state.lastHref = location.href;
+      resetTopicCollection();
       state.signature = "";
     }
     scheduleRender(50);
@@ -1224,6 +1506,7 @@
 
   function handleYouTubeNavigationStart() {
     state.isNavigating = true;
+    resetTopicCollection();
     state.activeView = "";
     state.activeMood = "";
     setLightsDown(false);
@@ -1249,6 +1532,7 @@
     state.enabled = Boolean(enabled);
     if (!state.enabled) {
       state.isNavigating = false;
+      resetTopicCollection();
       stopObservers();
       showNativeRoute(core.classifyRoute(location.href));
       return;

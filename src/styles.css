@@ -168,6 +168,7 @@ html[data-ytflix-enabled="true"] #guide {
 html[data-ytflix-enabled="true"][data-ytflix-mode="browse"],
 html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] body {
   overflow: hidden !important;
+  border-radius: 5px 5px 0 0 !important;
 }
 
 html[data-ytflix-enabled="true"][data-ytflix-mode="browse"] ytd-page-manager {
@@ -573,6 +574,35 @@ html[data-ytflix-mode="watch"] .ytflix-header {
 
 .ytflix-hero + .ytflix-rail-section {
   margin-top: -64px;
+}
+
+.ytflix-topic-collection {
+  position: relative;
+  z-index: 2;
+  margin-top: 56px;
+  padding: 48px 0 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 240px);
+}
+
+.ytflix-topic-collection__heading {
+  padding: 0 var(--ytflix-gutter);
+}
+
+.ytflix-topic-collection__heading .ytflix-eyebrow {
+  margin-bottom: 8px;
+}
+
+.ytflix-topic-collection__title {
+  margin: 0;
+  color: white;
+  font-size: clamp(28px, 3vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.ytflix-topic-collection .ytflix-rail-section {
+  margin-top: 30px;
 }
 
 .ytflix-rail-section__heading {

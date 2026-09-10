@@ -185,8 +185,41 @@
     return [route, ...(cards || []).slice(0, 48).map((card) => `${card.href}|${card.title}`)].join("::");
   }
 
+  function normalizeTopicRails(rawRails) {
+    const rails = [];
+    const railByTitle = new Map();
+
+    for (const rawRail of rawRails || []) {
+      const title = String(rawRail?.title || "").replace(/\s+/g, " ").trim();
+      if (!title) continue;
+
+      const cards = dedupeCards(rawRail?.cards || []);
+      if (!cards.length) continue;
+
+      const titleKey = title.toLocaleLowerCase();
+      const existing = railByTitle.get(titleKey);
+      if (existing) {
+        existing.cards = dedupeCards([...existing.cards, ...cards]);
+        continue;
+      }
+
+      const rail = { title, cards };
+      railByTitle.set(titleKey, rail);
+      rails.push(rail);
+    }
+
+    return rails;
+  }
+
+  function buildTopicSignature(topicRails) {
+    return normalizeTopicRails(topicRails)
+      .map((rail) => `${rail.title}::${rail.cards.slice(0, 16).map((card) => cardKey(card)).join("|")}`)
+      .join("::topic::");
+  }
+
   const api = {
     buildSignature,
+    buildTopicSignature,
     cardKey,
     classifyRoute,
     dedupeCards,
@@ -196,6 +229,7 @@
     groupCards,
     matchScore,
     normalizeCard,
+    normalizeTopicRails,
     routeLabel,
     thumbnailFromUrl,
     videoIdFromUrl
